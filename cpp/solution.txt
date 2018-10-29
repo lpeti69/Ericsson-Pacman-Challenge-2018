@@ -1,0 +1,14 @@
+string directions = ">>>>vvv<<<vvv<<>>>>>>>>>>>>>>>>>>>>>>>>>^^^<<<^^^<>>>>^^^<<<<<<<<<<vvv>vv<v^>>>^^^^^^^^^^<<<<<vvv>><<vv>>>^^^^>>>vv<<>>>>>>>>>>vvv<<<vv>>vv>>>^^^^>>>>>^^^^^^<<<<<vv<<<vv>>v<vv>vv>>>^^^>>>>>>>>>>vvv<vv>v^<<<^__^^^^^^^^vvv<>>>>>";
+//
+switch (G.tick) {
+    case 207:
+        cout << G.id << " 207 0 ^<" << endl;
+        break;
+    case 208:
+        cout << G.id << " 208 0 >^" << endl;
+        break;
+    default:
+        cerr << G.id << ' ' << G.tick << ' ' << G.P[0].id << ' ' << directions[G.tick] << endl;
+        cout << G.id << ' ' << G.tick << ' ' << G.P[0].id << ' ' << directions[G.tick] << endl;
+        break;
+}
