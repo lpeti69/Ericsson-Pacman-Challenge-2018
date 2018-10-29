@@ -29,9 +29,9 @@ istream& operator>>(istream& in, Map& M) {
 	return in;
 }
 
-class Packman {
+class Pacman {
 public:
-	size_t id;				// packman ID (index)
+	size_t id;				// pacman ID (index)
 	string team;			// team name
 	size_t x;				// x position on the map
 	size_t y;				// y position on the map
@@ -40,7 +40,7 @@ public:
 	string plus_points;		// earned pluspoints
 	string prev_cmd;		// previous commands
 	//
-	Packman() {  }
+	Pacman() {  }
 	void read(istream& in) {
 		string line;
 		getline(in, line);
@@ -53,7 +53,7 @@ public:
 private:
 	//
 };
-istream& operator>>(istream& in, Packman& P) {
+istream& operator>>(istream& in, Pacman& P) {
 	P.read(in);
 	return in;
 }
@@ -83,12 +83,12 @@ public:
 	static const size_t max_ticks = 480;
 	//
 	const int id;			// game ID
-	int pid;				// packman ID
+	int pid;				// pacman ID
 	int tick;				// current tick
 	vector<string> msgs;	// all messages from line 2
 	//
 	Map M;					// map
-	vector<Packman> P;		// packmans
+	vector<Pacman> P;		// packmans
 	vector<Ghost> H;		// ghosts
 	//
 	Game(const int g, const int t, const int p, const size_t x, const size_t y)
