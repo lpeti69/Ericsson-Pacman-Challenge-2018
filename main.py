@@ -2,32 +2,39 @@ import sys
 import queue
 import numpy as np
 
+class CONSTANTS(object):
+    FIELD_WALL                          = 'F'
+    FIELD_EMPTY                         = ' '
+    FIELD_FOOD                          = '1'
+    FIELD_BOOSTER                       = '+'
+    FIELD_GHOST_WALL                    = 'G'
+    GHOST_DEATH_TIME                    = 5
+    FOOD_SCORE                          = 10
+    SPEED_BOOSTER_SCORE                 = 50
+    SPEED_BOOSTER_DURATION              = 21
+    GHOST_SCORE                         = 100
+    BOOSTER_GHOST_SCORE_MULTIPLICATOR   = 2
+    MAX_TICK                            = 480
+
 class Game:
     def __init__(self):
-        self.GHOST_DEATH_TIME                   = 5
-        self.FOOD_SCORE                         = 10
-        self.SPEED_BOOSTER_SCORE                = 50
-        self.SPEED_BOOSTER_DURATION             = 21
-        self.GHOST_SCORE                        = 100
-        self.BOOSTER_GHOST_SCORE_MULTIPLICATOR  = 2
-        self.MAX_TICK                           = 480
         self.pacmanId                           = 0
+        self.GHOST_SPREAD_DEATH_RADIUS          = 10
+        self.GHOST_SPREAD_DEATH_DECAY           = 4
+        self.GHOST_PUSH_DIST                    = 1
+        self.GHOST_DANGER_EATABLE_TIME          = 2
+        self.pacmans                            = dict()
+        self.ghosts                             = dict()
+        self.map                                = dict()
 
     def __str__(self):
         return ("GAME_ID:{id}, PACMAN_ID:{pacmanId}, TICK:{tick}, MESSAGE:{message}\n"
             .format(id=self.gameId, pacmanId=self.pacmanId, tick=self.tick, message=self.currentMessage))
 
-    def setValues(self, gameId, tick, pacmanId, mapHeight, mapWidth, message = "NONE"):
+    def setValues(self, gameId, tick, pacmanId, message = "NONE"):
         self.gameId    = gameId
         self.tick      = tick
         self.pacmanId  = pacmanId
-        self.map       = dict(
-            width   = mapWidth,
-            height  = mapHeight,
-            state   = []
-        )
-        self.pacmanInfo     = []
-        self.ghostInfo      = []
         self.currentMessage = message
     
     def updateState(self):
@@ -36,124 +43,161 @@ class Game:
         gameId, tick, pacmanId = list(map(int, getLine()))
         mapHeight, mapWidth, pacmanCount, ghostCount, *message = getLine()
 
-        self.setValues(gameId, tick, pacmanId, int(mapHeight), int(mapWidth), message)
+        self.map["width"]   = int(mapWidth)
+        self.map["height"]  = int(mapHeight)
+        self.gameId    = gameId
+        self.tick      = tick
+        self.pacmanId  = pacmanId
+        self.currentMessage = message
 
-        ## TODO: Change code not to reinitialize
+        ## TODO: Low Prio, optimize input reading
+        self.map["state"] = []
         for _ in range(int(mapHeight)):
             self.map["state"].append(list(sys.stdin.readline())[:int(mapWidth)])
 
         for _ in range(int(pacmanCount)):
             id, team, y, x, remBoostTime, score, bonusPoints, *effects = getLine()
-            self.pacmanInfo.append(dict(
-                id              = int(id),
-                team            = team,
+            id = int(id)
+            if game.tick == 0:
+                self.pacmans[id] = Pacman(id = id, team = team)
+            self.pacmans[id].updateStatus(
                 pos             = (int(y), int(x)),
                 remBoostTime    = int(remBoostTime),
                 score           = int(score),
                 bonusPoints     = bonusPoints,
                 effects         = effects
-            ))
+            )
         
         for _ in range(int(ghostCount)):
             id, y, x, remEatableTime, remStandbyTime = getLine()
-            self.ghostInfo.append(dict(
-                id                  = id,
+            if game.tick == 0:
+                self.ghosts[id] = Ghost(id = id)
+            self.ghosts[id].updateStatus(
                 pos                 = (int(y), int(x)),
-                dir                 = None,
                 remEatableTime      = int(remEatableTime),
                 remStandbyTime      = int(remStandbyTime)
-            ))
-        
+            )
+
         return 0
+
+
+class Ghost:
+    def __init__(self, id):
+        self.id         = id
+        self.dir        = (0,0)
+        self.prevPos    = (0,0)
+
+    def updateStatus(self, pos, remEatableTime, remStandbyTime):
+        self.pos = pos
+        self.remEatableTime = remEatableTime
+        self.remStandbyTime = remStandbyTime
+        self.move()
+
+    def learnStrategy(self):
+        ## TODO: Add ghost statistics collection
+        ## TODO: Add accumulated Reinforcement learning for the strategy of the ghosts
+        pass
+
+    def move(self):
+        self.learnStrategy()
+        if self.prevPos != (0,0):
+            self.dir = (self.pos[0]-self.prevPos[0], self.pos[1]-self.prevPos[1])
+        self.prevPos = self.pos
         
 class Pacman:
-    def __init__(self, id = 0, pos = (0,0)):
-        self.dirs   = "v<>^"
-        self.id     = id
-        self.pos    = pos
-        self.dir    = None
-        self.score  = 0
-        self.remBoostTime = 0
-        self.GHOST_SPREAD_DEATH_RADIUS = 10
-        self.GHOST_SPREAD_DEATH_DECAY  = 5
+    def __init__(self, id, team):
+        self.dirs       = "v<>^"
+        self.dir        = None
+        self.id         = id
+        self.team       = team
 
     def __str__(self):
         return ("ID:{id}, POS:({y},{x}), DIR:{dir}\n"
             .format(id=self.id, y=self.pos[0], x=self.pos[1], dir=self.dir))
 
-    def updateStatus(self, pos, score, remBoostTime):
+    def updateStatus(self, pos, score, remBoostTime, bonusPoints, effects):
         self.pos            = pos
         self.score          = score
+        self.effects        = effects
         self.remBoostTime   = remBoostTime
+        self.bonusPoints    = bonusPoints
 
     
     def getFieldScore(self, pos):
         y,x = pos[0],pos[1]
         state = game.map["state"]
-        if state[y][x] == '1':
-            return game.FOOD_SCORE
-        if state[y][x] == '+':
-            multiplier = sum(np.exp(1 / np.arange(1, game.SPEED_BOOSTER_DURATION - self.remBoostTime)) - 1)
-            return multiplier * game.SPEED_BOOSTER_SCORE
-        for ghost in game.ghostInfo:
-            if ghost["pos"] == (y,x) and pacman.remBoostTime > 0:
+        if state[y][x] == CONSTANTS.FIELD_FOOD:
+            return CONSTANTS.FOOD_SCORE
+        if state[y][x] == CONSTANTS.FIELD_BOOSTER:
+            multiplier = sum(np.exp(1 / np.arange(1, CONSTANTS.SPEED_BOOSTER_DURATION - self.remBoostTime)) - 1)
+            return multiplier * CONSTANTS.SPEED_BOOSTER_SCORE
+        for _, ghost in game.ghosts.items():
+            if ghost.pos == (y,x) and pacman.remBoostTime > 0:
                 ## TODO: Add ghost kill streak && better heuristicts
-                return game.GHOST_SCORE / 2
-            elif ghost["pos"] == (y,x) and pacman.remBoostTime == 0:
+                return CONSTANTS.GHOST_SCORE / 2
+            elif ghost.pos == (y,x) and pacman.remBoostTime == 0:
                 #return -2*game.GHOST_SCORE
                 return 0
         return 0
 
     def coverPath(self, start, end, parents):
         while end != start:
-            if (game.tick == 5 or game.tick == 6) or game.tick == 7:
-                sys.stderr.write("(%d,%d)\n" % (end[0],end[1]))
             prev = parents[end[0]][end[1]]
             dir = (end[0]-prev[0], end[1]-prev[1])
             end = prev
-        if (game.tick == 5 or game.tick == 6) or game.tick == 7:
-            sys.stderr.write("(%d,%d)\n" % (end[0],end[1]))
         return dir
 
     def breadthFirstSearch(self, starts, evalFun, maxDist = sys.maxsize):
         height  = game.map["height"]
         width   = game.map["width"]
+        state   = game.map["state"]
         dist    = np.zeros(shape  = (height, width))
-        state = game.map["state"]
         targets = queue.Queue()
         for pos in starts:
-            sys.stderr.write("(%d,%d)\n" % (pos[0], pos[1]))
             targets.put(pos)
             visited = [[False for _ in range(width)] for _ in range(height)]
-
             while not targets.empty():
                 field = targets.get()
                 for dir in [(0,1), (1,0), (-1,0), (0,-1)]:
                     y,x = field[0]+dir[0], field[1]+dir[1]
-                    if ((0 <= y and y < height) and (0 <= x and x < width)) and (state[y][x] != 'F' and state[y][x] != 'G'):
+                    if ((0 <= y and y < height) and (0 <= x and x < width)) \
+                    and (state[y][x] != CONSTANTS.FIELD_WALL and state[y][x] != CONSTANTS.FIELD_GHOST_WALL):
                         if not visited[y][x]:
                             dist[y][x] = dist[field[0]][field[1]] + 1
                             if dist[y][x] <= maxDist:
                                 evalFun(y,x, field, dist[y][x])
-                                visited[y][x]   = True
+                                visited[y][x] = True
                                 targets.put((y,x))
-
         return dist
 
     def getHeuristics(self):
         height  = game.map["height"]
         width   = game.map["width"]
-        pos = self.pos
+        state   = game.map["state"]
+        pos     = self.pos
         scores  = np.zeros(shape = (height, width))
         dangers = np.zeros(shape = (height, width))
         parents = [[None for _ in range(width)] for _ in range(height)]
 
         ghostsPos = []
-        for ghost in game.ghostInfo:
-            if ghost["remStandbyTime"] <= 1:
-                ghostY, ghostX = ghost["pos"]
-                dangers[ghostY][ghostX] = game.GHOST_SCORE/2
-                ghostsPos.append((ghostY, ghostX))
+        for _, ghost in game.ghosts.items():
+            ## TODO: change boost handling
+            if ghost.remStandbyTime <= 1 and (ghost.remEatableTime <= game.GHOST_DANGER_EATABLE_TIME \
+            or self.remBoostTime <= CONSTANTS.SPEED_BOOSTER_DURATION / 4):
+                y,x = ghost.pos
+                pushDist = 0
+                ## Push ghost by its dir
+                while state[y][x] != CONSTANTS.FIELD_WALL \
+                and state[y][x] != game.pacmans[game.pacmanId] \
+                and pushDist <= game.GHOST_PUSH_DIST \
+                and ghost.dir != (0,0):
+                    ny,nx = y + ghost.dir[0], x + ghost.dir[1]
+                    if not ((0 <= ny and ny < height) and (0 <= nx and nx < width)):
+                        break
+                    y,x = ny,nx
+                    pushDist += 1
+                dangers[y][x] = CONSTANTS.GHOST_SCORE / 2
+                ghostsPos.append((y, x))
 
         def distAndScoreEval(y,x,field, dist):
             gain = scores[field[0]][field[1]] + self.getFieldScore((y,x))
@@ -162,57 +206,62 @@ class Pacman:
             parents[y][x]   = field
 
         def ghostDangerEval(y,x,field, dist):
-            diff = np.exp(1/dist) * self.GHOST_SPREAD_DEATH_DECAY
-            dangers[y][x]   += max(0, dangers[field[0]][field[1]] - diff)
+            diff = dist * game.GHOST_SPREAD_DEATH_DECAY
+            #sys.stderr.write("%.1f " % diff)
+            dangers[y][x]   += max(0, diff)
 
-        ## TODO: push ghost pos by their dir
-        ## TODO: change boost handling
-        if self.remBoostTime <= game.SPEED_BOOSTER_DURATION / 4:
-            self.breadthFirstSearch(ghostsPos, ghostDangerEval, 
-                                    self.GHOST_SPREAD_DEATH_RADIUS)
+        self.breadthFirstSearch(ghostsPos, ghostDangerEval, 
+                                game.GHOST_SPREAD_DEATH_RADIUS)
         dist = self.breadthFirstSearch([self.pos], distAndScoreEval)
 
-        ## TODO: Change it
+        ## TODO: Adjust distance multiplier
         distM = 2
-        heatMap = scores - distM * dist
+        heatMap = scores - distM * dist 
+        ## Making walls heat very low
+        for i in range(height):
+            for j in range(width):
+                if dist[i][j] == 0:
+                    heatMap[i,j] = -sys.maxsize
+        index = np.argmax(heatMap)
 
         if game.tick % 10 == 0:
-            sys.stderr.write("%s\n" % ghostsPos)
-            for container in [scores, dist, dangers]:
+            for container in [scores, dangers]:
                 for i in range(height):
                     for j in range(width):
                         sys.stderr.write("%d " % int(container[i][j]))
                     sys.stderr.write("\n")
                 sys.stderr.write("\n\n")
 
-        index = np.argmax(heatMap)
-        newY, newX = int(index / width), int(index % width)
-        sys.stderr.write("target: (%d,%d)\n" % (newY ,newX))
+        target = (int(index / width), int(index % width))
+        sys.stderr.write("target: (%d,%d)\n" % (target[0], target[1]))
 
-        return self.coverPath(pos, (newY, newX), parents)
+        ## TODO: Fix double step
+        dirs = [self.coverPath(pos, target, parents)]
+        if self.remBoostTime > 0:
+            dirs += self.coverPath((pos[0]+dirs[0][0], pos[1]+dirs[0][1]), target, parents)
+        return dirs
 
 
     def move(self):
-        dir = self.getHeuristics()
-        if dir == (0,1):
-            self.dir = '>'
-        if dir == (1,0):
-            self.dir = 'v'
-        if dir == (0,-1):
-            self.dir = '<'
-        if dir == (-1,0):
-            self.dir = '^'
+        dirs = self.getHeuristics()
+        self.dir = ''
+        for dir in dirs:
+            if dir == (0,1):
+                self.dir += '>'
+            if dir == (1,0):
+                self.dir += 'v'
+            if dir == (0,-1):
+                self.dir += '<'
+            if dir == (-1,0):
+                self.dir += '^'
 
 game = Game()
-pacman = Pacman()
-
 while True:
     game.updateState()
     if game.pacmanId == -1:
         break
 
-    pInfo = game.pacmanInfo[0]
-    pacman.updateStatus(pInfo["pos"], pInfo["score"], pInfo["remBoostTime"])
+    pacman = game.pacmans[game.pacmanId]
     pacman.move()
 
     if game.currentMessage != []:
