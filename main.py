@@ -124,11 +124,12 @@ class Pacman:
 
     
     def getFieldScore(self, pos):
-        y,x = pos[0],pos[1]
+        y,x = pos
         state = game.map["state"]
         if state[y][x] == CONSTANTS.FIELD_FOOD:
             return CONSTANTS.FOOD_SCORE
         if state[y][x] == CONSTANTS.FIELD_BOOSTER:
+            ## Expected utility
             multiplier = sum(np.exp(1 / np.arange(1, CONSTANTS.SPEED_BOOSTER_DURATION - self.remBoostTime)) - 1)
             return multiplier * CONSTANTS.SPEED_BOOSTER_SCORE
         for _, ghost in game.ghosts.items():
@@ -141,6 +142,7 @@ class Pacman:
         return 0
 
     def coverPath(self, start, end, parents):
+        sys.stderr.write("%s %s" % (start, end))
         while end != start:
             prev = parents[end[0]][end[1]]
             dir = (end[0]-prev[0], end[1]-prev[1])
@@ -151,7 +153,7 @@ class Pacman:
         height  = game.map["height"]
         width   = game.map["width"]
         state   = game.map["state"]
-        dist    = np.zeros(shape  = (height, width))
+        dist    = np.zeros(shape = (height, width))
         targets = queue.Queue()
         for pos in starts:
             targets.put(pos)
@@ -169,6 +171,22 @@ class Pacman:
                                 visited[y][x] = True
                                 targets.put((y,x))
         return dist
+
+    def getStepCount(self):
+        if self.remBoostTime > 0:
+            return 2
+        return 1
+
+    def getDir(self, dir):
+        if dir == (0,1):
+            return '>'
+        if dir == (1,0):
+            return 'v'
+        if dir == (0,-1):
+            return '<'
+        if dir == (-1,0):
+            return '^'
+        return "ERROR DIR"
 
     def getHeuristics(self):
         height  = game.map["height"]
@@ -225,10 +243,13 @@ class Pacman:
         index = np.argmax(heatMap)
 
         if game.tick % 10 == 0:
-            for container in [scores, dangers]:
+            for container in [heatMap]:
                 for i in range(height):
                     for j in range(width):
-                        sys.stderr.write("%d " % int(container[i][j]))
+                        if container[i][j] == -sys.maxsize:
+                            sys.stderr.write("  ")
+                        else:
+                            sys.stderr.write("%d " % int(container[i][j]))
                     sys.stderr.write("\n")
                 sys.stderr.write("\n\n")
 
@@ -236,24 +257,17 @@ class Pacman:
         sys.stderr.write("target: (%d,%d)\n" % (target[0], target[1]))
 
         ## TODO: Fix double step
-        dirs = [self.coverPath(pos, target, parents)]
-        if self.remBoostTime > 0:
-            dirs += self.coverPath((pos[0]+dirs[0][0], pos[1]+dirs[0][1]), target, parents)
+        dir = self.coverPath(pos, target, parents)
+        dirs = [dir]
+        if self.getStepCount() > 1:
+            dirs.append(self.coverPath((pos[0]+dir[0], pos[1]+dir[1]), target, parents))
         return dirs
 
-
     def move(self):
-        dirs = self.getHeuristics()
-        self.dir = ''
-        for dir in dirs:
-            if dir == (0,1):
-                self.dir += '>'
-            if dir == (1,0):
-                self.dir += 'v'
-            if dir == (0,-1):
-                self.dir += '<'
-            if dir == (-1,0):
-                self.dir += '^'
+        dir1, *dir2 = self.getHeuristics()
+        self.dir = self.getDir(dir1)
+        if dir2 != []:
+            self.dir += self.getDir(dir2[0])
 
 game = Game()
 while True:
@@ -266,4 +280,4 @@ while True:
 
     if game.currentMessage != []:
         sys.stderr.write("gameState:\n%spacman:\n%s\n" % (game, pacman))
-    sys.stdout.write("%s %s %s %c\n" % (game.gameId, game.tick, game.pacmanId, pacman.dir))
+    sys.stdout.write("%s %s %s %s\n" % (game.gameId, game.tick, game.pacmanId, pacman.dir))
