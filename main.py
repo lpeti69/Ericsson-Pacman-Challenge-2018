@@ -10,7 +10,7 @@ class CNST(object):
     FIELD_BOOSTER                       = '+'
     FIELD_GHOST_WALL                    = 'G'
     SCORE_FOOD                          = 10
-    SCORE_GHOST_EAT                    = 100
+    SCORE_GHOST_EAT                     = 100
     SCORE_GHOST_DEATH                   = -200
     SCORE_BOOSTER                       = 50
     GHOST_DEATH_TIME                    = 5
@@ -170,23 +170,30 @@ class Pacman:
         width   = game.map['width']
         height  = game.map['height']
         dist    = np.zeros(shape=(height,width))
+        walls = [CNST.FIELD_WALL, CNST.FIELD_GHOST_WALL]
         targets = queue.Queue()
         for pos in starts:
             targets.put(pos)
             visited = [[False for _ in range(width)] for _ in range(height)]
+            visited[pos[0]][pos[1]] = True
             while not targets.empty():
                 field = targets.get()
                 for direction in [(0,1), (1,0), (-1,0), (0,-1)]:
-                    y,x = field[0]+direction[0], field[1]+direction[1]
-                    if ((0 <= y and y < height) \
-                    and (0 <= x and x < width)) \
-                    and (game.map[y][x] != CNST.FIELD_WALL and game.map[y][x] != CNST.FIELD_GHOST_WALL):
-                        if not visited[y][x]:
-                            dist[y][x] = dist[field[0]][field[1]] + 1
-                            if dist[y][x] <= maxDist:
-                                evalFun(y,x, field, dist[y][x])
-                                visited[y][x] = True
-                                targets.put((y,x))
+                    # Map clip
+                    y, x = field[0]+direction[0], field[1]+direction[1]
+                    if y < 0 or y >= height:
+                        y = height - y
+                    if x < 0 or x >= width:
+                        x = width - x
+                    # Check
+                    if (0 <= y and y < height) and (0 <= x and x < width) \
+                    and game.map[y][x] not in walls and not visited[y][x]:
+                        dist[y][x] = dist[field[0]][field[1]] + 1
+                        if dist[y][x] <= maxDist:
+                            evalFun(y,x, field, dist[y][x])
+                            visited[y][x] = True
+                            targets.put((y,x))
+                    
         return dist
 
     def getStepCount(self):
