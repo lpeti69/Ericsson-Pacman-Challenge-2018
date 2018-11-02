@@ -10,7 +10,7 @@ class CNST(object):
     FIELD_BOOSTER                       = '+'
     FIELD_GHOST_WALL                    = 'G'
     SCORE_FOOD                          = 10
-    SCORE_GHOST_EATH                    = 100
+    SCORE_GHOST_EAT                    = 100
     SCORE_GHOST_DEATH                   = -200
     SCORE_BOOSTER                       = 50
     GHOST_DEATH_TIME                    = 5
@@ -31,9 +31,9 @@ class Game:
         self.GHOST_SPREAD_DEATH_DECAY           = 4
         self.GHOST_PUSH_DIST                    = 1
         self.GHOST_DANGER_EATABLE_TIME          = 2
-        self.pacmans                            = dict({})
-        self.ghosts                             = dict({})
-        self.map                                = dict({'width':0,'height':0})
+        self.pacmans                            = {}
+        self.ghosts                             = {}
+        self.map                                = {'width':0,'height':0}
         
         self.gameId         = 0
         self.tick           = 0
@@ -151,7 +151,7 @@ class Pacman:
             for _, ghost in game.ghosts.items():
                 if ghost.pos == pos and pacman.remBoostTime > 0:
                     ## TODO: Add ghost kill streak && better heuristicts && distance
-                    return CNST.SCORE_GHOST_EATH / 2
+                    return CNST.SCORE_GHOST_EAT / 2
                 elif ghost.pos == pos and pacman.remBoostTime == 0:
                     # return SCORE_GHOST_DEATH
                     return 0
@@ -214,7 +214,7 @@ class Pacman:
                         break
                     y,x = ny,nx
                     pushDist += 1
-                dangers[y][x] = CNST.SCORE_GHOST_EATH / 2
+                dangers[y][x] = CNST.SCORE_GHOST_EAT / 2
                 ghostsPos.append((y, x))
 
         def distAndScoreEval(y,x,field, dist):
