@@ -4,5 +4,5 @@
 - Add ghost kill streak(especially for quest)
 - Add ghost statistics collection
 - Add ghost tracking statistics(have we killed it in this booster dur. or the in the whole game)
-- Change ghost kill mode when in boost mode (right now, we only take account to ghosts when the rem boost time is over 1/4)
+- Change ghost kill mode when in boost mode (right now, we only take account to ghosts when the rem boost time is below 1/4)
 - Collect and adjust heat parameters
