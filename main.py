@@ -19,6 +19,17 @@ class CNST(object):
     MAX_TICK                            = 480
 
 
+class Logger:
+    def logContainer(self, container, evalFun):
+        for i in range(len(container)):
+            for j in range(len(container[i])):
+                if evalFun(container[i][j]):
+                    sys.stderr.write("%d " % container[i][j])
+                else:
+                    sys.stderr.write("A ")
+            sys.stderr.write("\n")
+        sys.stderr.write("\n")
+
 class Game:
     def __init__(self):
         self.gameId                             = 0
@@ -34,7 +45,7 @@ class Game:
         self.pacmans                            = dict({})
         self.ghosts                             = dict({})
         self.map                                = dict({'width':0,'height':0})
-        
+        self.logger         = Logger()
         self.gameId         = 0
         self.tick           = 0
         self.pacmanId       = 0
@@ -261,14 +272,7 @@ class Pacman:
 
         if game.tick % 10 == 0:
             for container in [heatMap]:
-                for i in range(height):
-                    for j in range(width):
-                        if container[i][j] == -sys.maxsize:
-                            sys.stderr.write("  ")
-                        else:
-                            sys.stderr.write("%d " % int(container[i][j]))
-                    sys.stderr.write("\n")
-                sys.stderr.write("\n\n")
+                game.logger.logContainer(container, lambda heatScore: heatScore != -sys.maxsize)
 
         target = (int(index / width), int(index % width))
         sys.stderr.write("target: (%d,%d)\n" % (target[0], target[1]))
