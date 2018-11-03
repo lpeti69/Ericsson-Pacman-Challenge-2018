@@ -7,3 +7,10 @@
 - Change ghost kill mode when in boost mode (right now, we only take account to ghosts when the rem boost time is below 1/4)
 - Collect and adjust heat parameters
 - Write useful logging function especially for heatmap
+
+Additional Ideas:
+## Add more heat for utility points nearby
+## Distributed positive heat generation
+## Search for safety places => bonus heat for them
+## Dont search paths which goes though a ghost when a ghost is 7(or x) distance away
+## Bonus heat for territories/field when a certain criteria meets (example: 25 food in 6 radius neighbourhod)
