@@ -10,7 +10,7 @@ class CNST(object):
     FIELD_BOOSTER                       = '+'
     FIELD_GHOST_WALL                    = 'G'
     SCORE_FOOD                          = 10
-    SCORE_GHOST_EATH                    = 100
+    SCORE_GHOST_EAT                     = 100
     SCORE_GHOST_DEATH                   = -200
     SCORE_BOOSTER                       = 50
     GHOST_DEATH_TIME                    = 5
@@ -42,10 +42,17 @@ class Game:
         self.GHOST_SPREAD_DEATH_DECAY           = 4
         self.GHOST_PUSH_DIST                    = 1
         self.GHOST_DANGER_EATABLE_TIME          = 2
+<<<<<<< HEAD
         self.pacmans                            = dict({})
         self.ghosts                             = dict({})
         self.map                                = dict({'width':0,'height':0})
         self.logger         = Logger()
+=======
+        self.pacmans                            = {}
+        self.ghosts                             = {}
+        self.map                                = {'width':0,'height':0}
+        
+>>>>>>> 3d77f0f83f65360aea9a3f66d9c5c1dff60f4e88
         self.gameId         = 0
         self.tick           = 0
         self.pacmanId       = 0
@@ -162,7 +169,7 @@ class Pacman:
             for _, ghost in game.ghosts.items():
                 if ghost.pos == pos and pacman.remBoostTime > 0:
                     ## TODO: Add ghost kill streak && better heuristicts && distance
-                    return CNST.SCORE_GHOST_EATH / 2
+                    return CNST.SCORE_GHOST_EAT / 2
                 elif ghost.pos == pos and pacman.remBoostTime == 0:
                     # return SCORE_GHOST_DEATH
                     return 0
@@ -181,23 +188,30 @@ class Pacman:
         width   = game.map['width']
         height  = game.map['height']
         dist    = np.zeros(shape=(height,width))
+        walls = [CNST.FIELD_WALL, CNST.FIELD_GHOST_WALL]
         targets = queue.Queue()
         for pos in starts:
             targets.put(pos)
             visited = [[False for _ in range(width)] for _ in range(height)]
+            visited[pos[0]][pos[1]] = True
             while not targets.empty():
                 field = targets.get()
                 for direction in [(0,1), (1,0), (-1,0), (0,-1)]:
-                    y,x = field[0]+direction[0], field[1]+direction[1]
-                    if ((0 <= y and y < height) \
-                    and (0 <= x and x < width)) \
-                    and (game.map[y][x] != CNST.FIELD_WALL and game.map[y][x] != CNST.FIELD_GHOST_WALL):
-                        if not visited[y][x]:
-                            dist[y][x] = dist[field[0]][field[1]] + 1
-                            if dist[y][x] <= maxDist:
-                                evalFun(y,x, field, dist[y][x])
-                                visited[y][x] = True
-                                targets.put((y,x))
+                    # Map clip
+                    y, x = field[0]+direction[0], field[1]+direction[1]
+                    if y < 0 or y >= height:
+                        y = height - y
+                    if x < 0 or x >= width:
+                        x = width - x
+                    # Check
+                    if (0 <= y and y < height) and (0 <= x and x < width) \
+                    and game.map[y][x] not in walls and not visited[y][x]:
+                        dist[y][x] = dist[field[0]][field[1]] + 1
+                        if dist[y][x] <= maxDist:
+                            evalFun(y,x, field, dist[y][x])
+                            visited[y][x] = True
+                            targets.put((y,x))
+                    
         return dist
 
     def getStepCount(self):
@@ -242,7 +256,7 @@ class Pacman:
                         break
                     y,x = ny,nx
                     pushDist += 1
-                dangers[y][x] = CNST.SCORE_GHOST_EATH / 2
+                dangers[y][x] = CNST.SCORE_GHOST_EAT / 2
                 ghostsPos.append((y, x))
 
         def distAndScoreEval(y,x,field, dist):
