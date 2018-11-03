@@ -1,4 +1,4 @@
-- Pacman can explore and use the side escapes properly
+- Pacman can explore and use the side escapes properly(and parents matrix (dir calculation) is proper)
 - Add scale in time to positive scores(food, booster, quests etc.)
 - Add huge penalty for trying to discover goals through a ghost
 - Add ghost kill streak(especially for quest)
