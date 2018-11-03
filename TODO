@@ -13,4 +13,5 @@ Additional Ideas:
 ## Distributed positive heat generation
 ## Search for safety places => bonus heat for them
 ## Dont search paths which goes though a ghost when a ghost is 7(or x) distance away
-## Bonus heat for territories/field when a certain criteria meets (example: 25 food in 6 radius neighbourhod)
+## Bonus heat for territories/field when a certain criteria meets (example: 25 food in 6 radius neighbourhod, no ghost nearby, close)
+## => So its basically a mixture of previous ones
