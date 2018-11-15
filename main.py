@@ -1,7 +1,12 @@
-
 import sys
 import queue
 import numpy as np
+
+## Add more heat for utility points nearby
+## Distributed positive heat generation
+## Search for safety places => bonus heat for them
+## Dont search paths which goes though a ghost when a ghost is 7(or x) distance away
+## Bonus heat for territories/field when a certain criteria meets (example: 25 food in 6 radius neighbourhod)
 
 class CNST(object):
     FIELD_WALL                          = 'F'
@@ -42,17 +47,10 @@ class Game:
         self.GHOST_SPREAD_DEATH_DECAY           = 4
         self.GHOST_PUSH_DIST                    = 1
         self.GHOST_DANGER_EATABLE_TIME          = 2
-<<<<<<< HEAD
         self.pacmans                            = dict({})
         self.ghosts                             = dict({})
         self.map                                = dict({'width':0,'height':0})
         self.logger         = Logger()
-=======
-        self.pacmans                            = {}
-        self.ghosts                             = {}
-        self.map                                = {'width':0,'height':0}
-        
->>>>>>> 3d77f0f83f65360aea9a3f66d9c5c1dff60f4e88
         self.gameId         = 0
         self.tick           = 0
         self.pacmanId       = 0
