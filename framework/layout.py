@@ -30,8 +30,9 @@ class Layout:
         self.walls = Grid(self.width, self.height, False)
         self.food = Grid(self.width, self.height, False)
         self.capsules = []
-        self.agentPositions = []
+        self.agentPositions = [] ## TODO: (True, pos) if its pacman, (False, pos) otherwise
         self.numGhosts = 0
+        self.numEnemyPacmans = 0
         self.processLayoutText(layoutText)
         self.layoutText = layoutText
         self.totalFood = len(self.food.asList())
@@ -39,6 +40,9 @@ class Layout:
 
     def getNumGhosts(self):
         return self.numGhosts
+
+    def getNumEnemyPacmans(self):
+        return self.numEnemyPacmans
 
     def initializeVisibilityMatrix(self):
         global VISIBILITY_MATRIX_CACHE
@@ -103,6 +107,7 @@ class Layout:
          o - Capsule
          G - Ghost
          P - Pacman
+         E - Enemy Pacman
         Other characters are ignored.
         """
         maxY = self.height - 1
@@ -125,6 +130,9 @@ class Layout:
         elif layoutChar in ['G']:
             self.agentPositions.append( (1, (x, y) ) )
             self.numGhosts += 1
+        elif layoutChar in ['E']:
+            self.agentPositions.append( (2, (x, y) ) )
+            self.numEnemyPacmans += 1
         elif layoutChar in  ['1', '2', '3', '4']:
             self.agentPositions.append( (int(layoutChar), (x,y)))
             self.numGhosts += 1

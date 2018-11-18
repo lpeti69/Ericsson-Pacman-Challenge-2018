@@ -390,7 +390,7 @@ class GameStateData:
         self._agentMoved = None
         self._lose = False
         self._win = False
-        self.scoreChange = 0
+        self.reward = 0
 
     def deepCopy( self ):
         state = GameStateData( self )
@@ -493,7 +493,7 @@ class GameStateData:
         self.capsules = layout.capsules[:]
         self.layout = layout
         self.score = 0
-        self.scoreChange = 0
+        self.reward = 0
 
         self.agentStates = []
         numGhosts = 0

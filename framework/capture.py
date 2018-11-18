@@ -117,7 +117,7 @@ class GameState:
 
     # Book keeping
     state.data._agentMoved = agentIndex
-    state.data.score += state.data.scoreChange
+    state.data.score += state.data.reward
     state.data.timeleft = self.data.timeleft - 1
     return state
 
@@ -492,7 +492,7 @@ class AgentRules:
       #agentState.numCarrying *= int(agentState.isPacman)
       if agentState.numCarrying > 0 and not agentState.isPacman:
         score = agentState.numCarrying if isRed else -1*agentState.numCarrying
-        state.data.scoreChange += score
+        state.data.reward += score
 
         agentState.numReturned += agentState.numCarrying
         agentState.numCarrying = 0
@@ -535,7 +535,7 @@ class AgentRules:
           break # the above should only be true for one agent...
 
       # do all the score and food grid maintainenace 
-      #state.data.scoreChange += score
+      #state.data.reward += score
       state.data.food = state.data.food.copy()
       state.data.food[x][y] = False
       state.data._foodEaten = position
@@ -586,7 +586,7 @@ class AgentRules:
     # the direction should be -1 if the red agent died, which means he dies
     # on the blue side
     scoreDirection = (-1)**(int(isRed) + 1)
-    #state.data.scoreChange += scoreDirection * agentState.numCarrying
+    #state.data.reward += scoreDirection * agentState.numCarrying
 
     def onRightSide(state, x, y):
       dummyConfig = Configuration((x, y), 'North')
@@ -685,7 +685,7 @@ class AgentRules:
             score = KILL_POINTS
             if state.isOnRedTeam(agentIndex):
               score = -score
-            state.data.scoreChange += score
+            state.data.reward += score
             agentState.isPacman = False
             agentState.configuration = agentState.start
             agentState.scaredTimer = 0
@@ -693,7 +693,7 @@ class AgentRules:
             score = KILL_POINTS
             if state.isOnRedTeam(agentIndex):
               score = -score
-            state.data.scoreChange += score
+            state.data.reward += score
             otherAgentState.isPacman = False
             otherAgentState.configuration = otherAgentState.start
             otherAgentState.scaredTimer = 0
@@ -711,7 +711,7 @@ class AgentRules:
             score = KILL_POINTS
             if not state.isOnRedTeam(agentIndex):
               score = -score
-            state.data.scoreChange += score
+            state.data.reward += score
             otherAgentState.isPacman = False
             otherAgentState.configuration = otherAgentState.start
             otherAgentState.scaredTimer = 0
@@ -719,7 +719,7 @@ class AgentRules:
             score = KILL_POINTS
             if state.isOnRedTeam(agentIndex):
               score = -score
-            state.data.scoreChange += score
+            state.data.reward += score
             agentState.isPacman = False
             agentState.configuration = agentState.start
             agentState.scaredTimer = 0
