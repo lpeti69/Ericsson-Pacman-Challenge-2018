@@ -386,21 +386,23 @@ class GameStateData:
             self._eaten = prevState._eaten
             self.score = prevState.score
             self.tick = prevState.tick
+            self.reward = [0 for i in range(len( self.agentStates ))]
 
         self._foodEaten = None
         self._foodAdded = None
         self._capsuleEaten = None
         self._agentMoved = None
-        self._lose = False
-        self._win = False
-        self.reward = []
+        self._isGameOver = False
+
 
     def deepCopy( self ):
         state = GameStateData( self )
         state.numGhosts = self.numGhosts
         state.tick = self.tick
         state.food = self.food.deepCopy()
+        state.reward = self.reward
         state.layout = self.layout.deepCopy()
+        state._isGameOver = self._isGameOver
         state._agentMoved = self._agentMoved
         state._foodEaten = self._foodEaten
         state._foodAdded = self._foodAdded
@@ -460,7 +462,12 @@ class GameStateData:
         for x, y in self.capsules:
             map[x][y] = 'o'
 
-        return str(map) + ("\nScore: %d\n" % self.score)
+        res, i = str(map),0
+        res += "\nScores : (index, score)\n"
+        for score in self.score:
+            res += "(%d,%d)\n" % (i, score)
+            i += 1
+        return res
 
     def _foodWallStr( self, hasFood, hasWall ):
         if hasFood:
@@ -621,6 +628,9 @@ class Game:
 
         agentIndex = self.startingIndex
         numAgents = len( self.agents )
+        print numAgents
+        for agent in self.agents:
+            print agent.index
 
         while not self.gameOver:
             # Fetch the next agent
@@ -709,12 +719,10 @@ class Game:
                     return
             else:
                 self.state = self.state.generateSuccessor( agentIndex, action )
-
             # Change the display
             self.display.update( self.state.data )
             ###idx = agentIndex - agentIndex % 2 + 1
             ###self.display.update( self.state.makeObservation(idx).data )
-
             # Allow for game specific conditions (winning, losing, etc.)
             self.rules.process(self.state, self)
             # Track progress
@@ -723,7 +731,6 @@ class Game:
                 self.state.tick += 1
             # Next agent
             agentIndex = ( agentIndex + 1 ) % numAgents
-
             if _BOINC_ENABLED:
                 boinc.set_fraction_done(self.getProgress())
 

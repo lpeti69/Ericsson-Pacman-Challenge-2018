@@ -22,8 +22,8 @@ class LeftTurnAgent(Agent):
     "An agent that turns left at every opportunity"
 
     def getAction(self, state):
-        legal = state.getLegalPacmanActions()
-        current = state.getPacmanState().configuration.direction
+        legal = state.getLegalPacmanActions(self.index)
+        current = state.getPacmanState(self.index).configuration.direction
         if current == Directions.STOP: current = Directions.NORTH
         left = Directions.LEFT[current]
         if left in legal: return left
@@ -34,16 +34,17 @@ class LeftTurnAgent(Agent):
 
 class GreedyAgent(Agent):
     def __init__(self, index, evalFn="scoreEvaluation"):
+        self.index = index
         self.evaluationFunction = util.lookup(evalFn, globals())
         assert self.evaluationFunction != None
 
     def getAction(self, state):
         # Generate candidate actions
-        legal = state.getLegalPacmanActions()
+        legal = state.getLegalPacmanActions(self.index)
         if Directions.STOP in legal: legal.remove(Directions.STOP)
 
-        successors = [(state.generateSuccessor(0, action), action) for action in legal]
-        scored = [(self.evaluationFunction(state), action) for state, action in successors]
+        successors = [(state.generateSuccessor(self.index, action), action) for action in legal]
+        scored = [(self.evaluationFunction(state, self.index), action) for state, action in successors]
         bestScore = max(scored)[0]
         bestActions = [pair[1] for pair in scored if pair[0] == bestScore]
         return random.choice(bestActions)
@@ -52,5 +53,5 @@ class MyAgent(Agent): ## TODO
     def getAction(self, state):
         return Directions.STOP
 
-def scoreEvaluation(state):
-    return state.getScore()
+def scoreEvaluation(state, agentIndex):
+    return state.getScore(agentIndex)

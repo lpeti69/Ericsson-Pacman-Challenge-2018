@@ -104,7 +104,7 @@ class GameState:
         Returns the legal actions for the agent specified.
         """
 #        GameState.explored.add(self)
-        if self.isWin() or self.isLose(): return []
+        if self.isGameOver(): return []
 
         if self.isPacman(agentIndex):  # Pacman is moving
             return PacmanRules.getLegalActions( self, agentIndex )
@@ -116,7 +116,7 @@ class GameState:
         Returns the successor state after the specified agent takes the action.
         """
         # Check that successors exist
-        if self.isWin() or self.isLose(): raise Exception('Can\'t generate a successor of a terminal state.')
+        if self.isGameOver(): raise Exception('Can\'t generate a successor of a terminal state.')
 
         # Copy current state
         state = GameState(self)
@@ -152,6 +152,8 @@ class GameState:
         return state
     
     def isPacman(self, agentIndex):
+        if agentIndex < 0 or agentIndex >= self.getNumAgents():
+            raise Exception("%d: Index out of range" % agentIndex)
         return self.data.agentStates[agentIndex].isPacman
 
     def getLegalPacmanActions( self, agentIndex ):
@@ -326,7 +328,7 @@ class EriccsonPacmanRules:
     def newGame( self, layout, pacmanAgents, ghostAgents, display, quiet = False, catchExceptions=False):
         ## TODO: Pacman index 0, enemy pacmans [1,k], ghosts [k+1,n]
         ## TODO: Check if merge agent arrays or not
-        agents = pacmanAgents[:layout.getNumEnemyPacmans() + 1] + ghostAgents[:layout.getNumGhosts()]
+        agents = pacmanAgents[:1] + ghostAgents[:layout.getNumGhosts()] + pacmanAgents[1:layout.getNumEnemyPacmans() + 1]
         initState = GameState()
         ## Sets underlying GameState's gamestatedata from game.py
         initState.initialize( layout, len(ghostAgents), len(pacmanAgents) - 1 )
@@ -344,10 +346,9 @@ class EriccsonPacmanRules:
             print "Game ended, Scores:\n(Agent,Score)"
             i = 0
             for score in state.data.score:
-                if score != 0:
-                    print "(%d,%d)\n" % (i, score)
+                print "(%d,%d)" % (i, score)
                 i += 1
-        game.gameOver = True
+            game.gameOver = True
 
     def getProgress(self, game):
         return float(game.state.getNumFood()) / self.initialState.getNumFood()
@@ -431,7 +432,7 @@ class PacmanRules:
             state.data._capsuleEaten = position ## TODO: Add score
             state.data.reward[agentIndex] = CNST.SCORE_BOOSTER
             # Reset all ghosts' scared timers
-            for index in range( 1, len( state.data.agentStates ) ): ## TODO: only ghosts
+            for index in range( 1, state.data.numGhosts + 1 ): ## TODO: only ghosts
                 state.data.agentStates[index].scaredTimer = SCARED_TIME ## TODO: change?
     consume = staticmethod( consume )
 
@@ -463,9 +464,9 @@ class GhostRules: ## TODO: Calculate for general pacmans
 
         legal = GhostRules.getLegalActions( state, ghostIndex )
         if action not in legal:
-            raise Exception("Illegal ghost action " + str(action))
+            raise Exception("Illegal ghost action " + str(action) + " " + str(state.data.agentStates[ghostIndex]) + " " + str(ghostIndex))
 
-        ghostState = state.data.agentStates[ghostIndex]
+        ghostState = state.getGhostState(ghostIndex)
         speed = GhostRules.GHOST_SPEED
         if ghostState.scaredTimer > 0: speed /= 2.0 ## TODO: is this valid interpretation of speed booster?
         vector = Actions.directionToVector( action, speed )
@@ -480,9 +481,9 @@ class GhostRules: ## TODO: Calculate for general pacmans
     decrementTimer = staticmethod( decrementTimer )
 
     def checkDeath( state, agentIndex): ## TODO check for all pacmans
-        pacmanPosition = state.getPacmanPosition()
+        pacmanPosition = state.getPacmanPosition(0)
         if agentIndex == 0: # Pacman just moved; Anyone can kill him
-            for index in range( 1, len( state.data.agentStates ) ):
+            for index in range( 1, state.data.numGhosts + 1 ):
                 ghostState = state.data.agentStates[index]
                 ghostPosition = ghostState.configuration.getPosition()
                 if GhostRules.canKill( pacmanPosition, ghostPosition ):
@@ -496,15 +497,15 @@ class GhostRules: ## TODO: Calculate for general pacmans
 
     def collide( state, ghostState, agentIndex): ## TODO apply for all pacmans
         if ghostState.scaredTimer > 0:
-            state.data.reward += 200 ## TODO
+            state.data.reward[agentIndex] += 200 ## TODO
             ##state.data.reward += CNST.SCORE_GHOST_EAT
-            GhostRules.placeGhost(state, ghostState)
+            GhostRules.placeGhost(state, ghostState) ## todo
             ghostState.scaredTimer = 0
             # Added for first-person
-            state.data._eaten[agentIndex] = True
+            state.data._eaten[agentIndex] = True ## TODO
         else:
             if not state.data._isGameOver:
-                state.data.reward -= 500
+                state.data.reward[agentIndex] -= 500 ## TODO
                 state.data._isGameOver = True
     collide = staticmethod( collide )
 
@@ -732,13 +733,10 @@ def runGames( layout, pacmans, ghosts, display, numGames, record, numTraining = 
             f.close()
 
     if (numGames-numTraining) > 0:
-        scores = [game.state.getScore() for game in games]
-        wins = [game.state.isWin() for game in games]
-        winRate = wins.count(True)/ float(len(wins))
+        scores = [game.state.getScore(0) for game in games] ## TODO: print other scores
         print 'Average Score:', sum(scores) / float(len(scores))
         print 'Scores:       ', ', '.join([str(score) for score in scores])
-        print 'Win Rate:      %d/%d (%.2f)' % (wins.count(True), len(wins), winRate)
-        print 'Record:       ', ', '.join([ ['Loss', 'Win'][int(w)] for w in wins])
+        print 'Record:        %d' % max(scores)
 
     return games
 
