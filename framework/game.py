@@ -122,10 +122,11 @@ class AgentState:
     AgentStates hold the state of an agent (configuration, speed, scared, etc).
     """
 
-    def __init__( self, startConfiguration, isPacman ):
+    def __init__( self, startConfiguration, isPacman, index ):
         self.start = startConfiguration
         self.configuration = startConfiguration
         self.isPacman = isPacman
+        self.index = index
         self.scaredTimer = 0
         self.numCarrying = 0
         self.numReturned = 0
@@ -145,7 +146,7 @@ class AgentState:
         return hash(hash(self.configuration) + 13 * hash(self.scaredTimer))
 
     def copy( self ):
-        state = AgentState( self.start, self.isPacman )
+        state = AgentState( self.start, self.isPacman, self.index )
         state.configuration = self.configuration
         state.scaredTimer = self.scaredTimer
         state.numCarrying = self.numCarrying
@@ -378,11 +379,13 @@ class GameStateData:
         """
         if prevState != None:
             self.food = prevState.food.shallowCopy()
+            self.numGhosts = prevState.numGhosts
             self.capsules = prevState.capsules[:]
             self.agentStates = self.copyAgentStates( prevState.agentStates )
             self.layout = prevState.layout
             self._eaten = prevState._eaten
             self.score = prevState.score
+            self.tick = prevState.tick
 
         self._foodEaten = None
         self._foodAdded = None
@@ -390,10 +393,12 @@ class GameStateData:
         self._agentMoved = None
         self._lose = False
         self._win = False
-        self.reward = 0
+        self.reward = []
 
     def deepCopy( self ):
         state = GameStateData( self )
+        state.numGhosts = self.numGhosts
+        state.tick = self.tick
         state.food = self.food.deepCopy()
         state.layout = self.layout.deepCopy()
         state._agentMoved = self._agentMoved
@@ -430,7 +435,7 @@ class GameStateData:
             except TypeError, e:
                 print e
                 #hash(state)
-        return int((hash(tuple(self.agentStates)) + 13*hash(self.food) + 113* hash(tuple(self.capsules)) + 7 * hash(self.score)) % 1048575 )
+        return int((hash(tuple(self.agentStates)) + 13*hash(self.food) + 113* hash(tuple(self.capsules)) + 7 * hash(sum(self.score))) % 1048575 )
 
     def __str__( self ):
         width, height = self.layout.width, self.layout.height
@@ -484,7 +489,7 @@ class GameStateData:
             return '3'
         return 'E'
 
-    def initialize( self, layout, numGhostAgents ):
+    def initialize( self, layout, maxNumGhostAgents, maxNumEnemyPacmanAgents ):
         """
         Creates an initial game state from a layout array (see layout.py).
         """
@@ -492,17 +497,23 @@ class GameStateData:
         #self.capsules = []
         self.capsules = layout.capsules[:]
         self.layout = layout
-        self.score = 0
-        self.reward = 0
-
         self.agentStates = []
-        numGhosts = 0
+        self.tick = 0
+        numGhosts, numEnemyPacmans, index = 0, 0, 0
         for isPacman, pos in layout.agentPositions:
             if not isPacman:
-                if numGhosts == numGhostAgents: continue # Max ghosts reached already
+                if numGhosts == maxNumGhostAgents: continue # Max ghosts reached already
                 else: numGhosts += 1
-            self.agentStates.append( AgentState( Configuration( pos, Directions.STOP), isPacman) )
+            elif pos != layout.MyPacmanPos:
+                if numEnemyPacmans == maxNumEnemyPacmanAgents: continue
+                else: numEnemyPacmans += 1
+            self.agentStates.append( AgentState( Configuration( pos, Directions.STOP), isPacman, index) )
+            index += 1
         self._eaten = [False for a in self.agentStates]
+        numAgents = numGhosts + numEnemyPacmans + 1
+        self.numGhosts = numGhosts
+        self.score = [0 for i in range(numAgents)]
+        self.reward = [0 for i in range(numAgents)]
 
 try:
     import boinc
@@ -707,7 +718,9 @@ class Game:
             # Allow for game specific conditions (winning, losing, etc.)
             self.rules.process(self.state, self)
             # Track progress
-            if agentIndex == numAgents + 1: self.numMoves += 1
+            if agentIndex == numAgents + 1: 
+                self.numMoves += 1
+                self.state.tick += 1
             # Next agent
             agentIndex = ( agentIndex + 1 ) % numAgents
 

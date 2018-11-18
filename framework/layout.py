@@ -31,6 +31,7 @@ class Layout:
         self.food = Grid(self.width, self.height, False)
         self.capsules = []
         self.agentPositions = [] ## TODO: (True, pos) if its pacman, (False, pos) otherwise
+        self.MyPacmanPos = (0,0)
         self.numGhosts = 0
         self.numEnemyPacmans = 0
         self.processLayoutText(layoutText)
@@ -116,7 +117,7 @@ class Layout:
                 layoutChar = layoutText[maxY - y][x]
                 self.processLayoutChar(x, y, layoutChar)
         self.agentPositions.sort()
-        self.agentPositions = [ ( i == 0, pos) for i, pos in self.agentPositions]
+        self.agentPositions = [ ( i == 0 or i == 2, pos) for i, pos in self.agentPositions]
 
     def processLayoutChar(self, x, y, layoutChar):
         if layoutChar == '%':
@@ -127,6 +128,7 @@ class Layout:
             self.capsules.append((x, y))
         elif layoutChar == 'P':
             self.agentPositions.append( (0, (x, y) ) )
+            self.MyPacmanPos = (x,y)
         elif layoutChar in ['G']:
             self.agentPositions.append( (1, (x, y) ) )
             self.numGhosts += 1

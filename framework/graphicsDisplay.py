@@ -56,11 +56,15 @@ GHOST_SHAPE = [
     (-0.25, 0.75 )
   ]
 GHOST_SIZE = 0.65
+## MY SCARED COLOR
 SCARED_COLOR = formatColor(1,1,1)
+## ENEMY SCARED COLOR
+ENEMY_SCARED_COLOR = formatColor(0,0,0)
 
 GHOST_VEC_COLORS = map(colorToVector, GHOST_COLORS)
 
 PACMAN_COLOR = formatColor(255.0/255.0,255.0/255.0,61.0/255)
+ENEMY_PACMAN_COLOR = formatColor(61.0/255.0,255.0/255.0,255.0/255)
 PACMAN_SCALE = 0.5
 #pacman_speed = 0.25
 
@@ -208,7 +212,7 @@ class PacmanGraphics:
         self.capsules = self.drawCapsules(layout.capsules)
         refresh()
 
-    def drawAgentObjects(self, state):
+    def drawAgentObjects(self, state): ## TODO
         self.agentImages = [] # (agentState, image)
         for index, agent in enumerate(state.agentStates):
             if agent.isPacman:
@@ -271,7 +275,10 @@ class PacmanGraphics:
 
         width = PACMAN_OUTLINE_WIDTH
         outlineColor = PACMAN_COLOR
-        fillColor = PACMAN_COLOR
+        if index == 0:
+            fillColor = PACMAN_COLOR
+        else:
+            fillColor = ENEMY_PACMAN_COLOR
 
         if self.capture:
             outlineColor = TEAM_COLORS[index % 2]
