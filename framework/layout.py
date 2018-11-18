@@ -27,7 +27,7 @@ class Layout:
     def __init__(self, layoutText):
         self.width = len(layoutText[0])
         self.height= len(layoutText)
-        self.walls = Grid(self.width, self.height, False)
+        self.walls = Grid(self.width, self.height, 0)
         self.food = Grid(self.width, self.height, False)
         self.capsules = []
         self.agentPositions = [] ## TODO: (True, pos) if its pacman, (False, pos) otherwise
@@ -104,6 +104,7 @@ class Layout:
         The shape of the maze.  Each character
         represents a different type of object.
          % - Wall
+         # - Ghost Wall
          . - Food
          o - Capsule
          G - Ghost
@@ -121,7 +122,9 @@ class Layout:
 
     def processLayoutChar(self, x, y, layoutChar):
         if layoutChar == '%':
-            self.walls[x][y] = True
+            self.walls[x][y] = 1
+        elif layoutChar == '#':
+            self.walls[x][y] = 2
         elif layoutChar == '.':
             self.food[x][y] = True
         elif layoutChar == 'o':

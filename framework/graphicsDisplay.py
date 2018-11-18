@@ -27,6 +27,7 @@ DEFAULT_GRID_SIZE = 30.0
 INFO_PANE_HEIGHT = 35
 BACKGROUND_COLOR = formatColor(0,0,0)
 WALL_COLOR = formatColor(0.0/255.0, 51.0/255.0, 255.0/255.0)
+GHOST_WALL_COLOR = formatColor(120.0/255.0, 51.0/255.0, 120.0/255.0)
 INFO_PANE_COLOR = formatColor(.4,.4,0)
 SCORE_COLOR = formatColor(.9, .9, .9)
 PACMAN_OUTLINE_WIDTH = 2
@@ -442,10 +443,15 @@ class PacmanGraphics:
             if self.capture and (xNum * 2) >= wallMatrix.width: wallColor = TEAM_COLORS[1]
 
             for yNum, cell in enumerate(x):
-                if cell: # There's a wall here
-                    pos = (xNum, yNum)
-                    screen = self.to_screen(pos)
-                    screen2 = self.to_screen2(pos)
+                pos = (xNum, yNum)
+                screen = self.to_screen(pos)
+                screen2 = self.to_screen2(pos)
+                if cell == 2:
+                    wallColor = GHOST_WALL_COLOR
+                    circle(screen2, 1.5 * WALL_RADIUS * self.gridSize, wallColor, wallColor, (0,359), 'arc')
+                if cell == 1: # There's a wall here
+                    wallColor = WALL_COLOR
+ 
 
                     # draw each quadrant of the square based on adjacent walls
                     wIsWall = self.isWall(xNum-1, yNum, wallMatrix)
@@ -526,7 +532,7 @@ class PacmanGraphics:
             return False
         if x >= walls.width or y >= walls.height:
             return False
-        return walls[x][y]
+        return walls[x][y] == 1
 
     def drawFood(self, foodMatrix ):
         foodImages = []

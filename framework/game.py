@@ -121,15 +121,21 @@ class AgentState:
     """
     AgentStates hold the state of an agent (configuration, speed, scared, etc).
     """
-
-    def __init__( self, startConfiguration, isPacman, index ):
+    ## TODO: Add runtime polymorhism
+    def __init__( self, startConfiguration, isPacman, index, numAgents ):
         self.start = startConfiguration
         self.configuration = startConfiguration
         self.isPacman = isPacman
         self.index = index
-        self.scaredTimer = 0
-        self.numCarrying = 0
-        self.numReturned = 0
+        self.numAgents = numAgents
+        self.ghostMultiplier = 1 ## TODO track bonus score
+        self.isDead = False ## TODO track dead enemy pacmans
+        self.boosterTimer = 0 ## TODO track remaining boost timer
+        self.scaredTimer = [0 for i in range(numAgents)] ## TODO: tracked pacman-ghost scared relationships
+        if isPacman:
+            self.respawnTimer = 0
+        else:
+            self.respawnTimer = CNST.GHOST_DEATH_TIME ## TODO: Calculate
 
     def __str__( self ):
         if self.isPacman:
@@ -143,14 +149,13 @@ class AgentState:
         return self.configuration == other.configuration and self.scaredTimer == other.scaredTimer
 
     def __hash__(self):
-        return hash(hash(self.configuration) + 13 * hash(self.scaredTimer))
+        return hash(hash(self.configuration) + 13 * hash(sum(self.scaredTimer)))
 
     def copy( self ):
-        state = AgentState( self.start, self.isPacman, self.index )
+        state = AgentState( self.start, self.isPacman, self.index, self.numAgents )
         state.configuration = self.configuration
+        state.boosterTimer = self.boosterTimer
         state.scaredTimer = self.scaredTimer
-        state.numCarrying = self.numCarrying
-        state.numReturned = self.numReturned
         return state
 
     def getPosition(self):
@@ -330,7 +335,7 @@ class Actions:
         return (dx * speed, dy * speed)
     directionToVector = staticmethod(directionToVector)
 
-    def getPossibleActions(config, walls):
+    def getPossibleActions(config, walls, passableWalls):
         possible = []
         x, y = config.pos
         x_int, y_int = int(x + 0.5), int(y + 0.5)
@@ -343,7 +348,7 @@ class Actions:
             dx, dy = vec
             next_y = y_int + dy
             next_x = x_int + dx
-            if not walls[next_x][next_y]: possible.append(dir)
+            if not walls[next_x][next_y] in passableWalls: possible.append(dir)
 
         return possible
 
@@ -359,7 +364,7 @@ class Actions:
             if next_x < 0 or next_x == walls.width: continue
             next_y = y_int + dy
             if next_y < 0 or next_y == walls.height: continue
-            if not walls[next_x][next_y]: neighbors.append((next_x, next_y))
+            if not walls[next_x][next_y] in (1,2): neighbors.append((next_x, next_y))
         return neighbors
     getLegalNeighbors = staticmethod(getLegalNeighbors)
 
@@ -469,11 +474,13 @@ class GameStateData:
             i += 1
         return res
 
-    def _foodWallStr( self, hasFood, hasWall ):
+    def _foodWallStr( self, hasFood, wall ):
         if hasFood:
             return '.'
-        elif hasWall:
+        elif wall == 1:
             return '%'
+        elif wall == 2:
+            return '#'
         else:
             return ' '
 
@@ -505,6 +512,7 @@ class GameStateData:
         self.capsules = layout.capsules[:]
         self.layout = layout
         self.agentStates = []
+        agents = []
         self.tick = 0
         numGhosts, numEnemyPacmans, index = 0, 0, 0
         for isPacman, pos in layout.agentPositions:
@@ -514,10 +522,12 @@ class GameStateData:
             elif pos != layout.MyPacmanPos:
                 if numEnemyPacmans == maxNumEnemyPacmanAgents: continue
                 else: numEnemyPacmans += 1
-            self.agentStates.append( AgentState( Configuration( pos, Directions.STOP), isPacman, index) )
+            agents.append((pos, isPacman, index))
             index += 1
         self._eaten = [False for a in self.agentStates]
         numAgents = numGhosts + numEnemyPacmans + 1
+        for pos, isPacman, index in agents:
+            self.agentStates.append( AgentState( Configuration( pos, Directions.STOP), isPacman, index, numAgents) )
         self.numGhosts = numGhosts
         self.score = [0 for i in range(numAgents)]
         self.reward = [0 for i in range(numAgents)]
