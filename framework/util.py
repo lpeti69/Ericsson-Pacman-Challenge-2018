@@ -31,6 +31,7 @@ class CNST(object):
     BOOSTER_DURATION                    = 21
     BOOSTER_GHOST_SCORE_MULTIPLICATOR   = 2
     COLLISION_TIMER                     = 21
+    QUEST_ALL_GHOST_EATEN_SCORE         = 200
 
 class FixedRandom:
     def __init__(self):

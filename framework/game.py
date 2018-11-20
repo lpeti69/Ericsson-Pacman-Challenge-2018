@@ -121,6 +121,7 @@ class AgentState:
     """
     AgentStates hold the state of an agent (configuration, speed, scared, etc).
     """
+    ## TODO: Let ghosts pass through sideways
     ## TODO: Add runtime polymorhism
     ## TODO: Remove items only at the end of the turn
     ## TODO: Currently every pacman get 10 for food, 50 for booster, 0 for ghosts if eaten already
@@ -129,7 +130,7 @@ class AgentState:
     ## 2: Ghost deaths
     ## 3: Pacman collisions
     ## 4: Booster/food eat
-    ## TODO: implement quests !!!
+    ## TODO: measure: 3 ghost eaten in 10 tick
     def __init__( self, startConfiguration, isPacman, index, numAgents ):
         self.start = startConfiguration
         self.configuration = startConfiguration
@@ -139,6 +140,7 @@ class AgentState:
         self.ghostMultiplier = 1
         self.isDead = False
         self.hasUsedBoosterBefore = False
+        self.ghostsEaten = [False for i in range(numAgents)]
         self.lastCollisions = [CNST.COLLISION_TIMER for i in range(numAgents)]
         self.boosterTimer = 0
         self.scaredTimer = [0 for i in range(numAgents)]
@@ -166,6 +168,7 @@ class AgentState:
         state.configuration = self.configuration
         state.ghostMultiplier = self.ghostMultiplier
         state.isDead = self.isDead
+        state.ghostsEaten = self.ghostsEaten
         state.lastCollisions = self.lastCollisions
         state.hasUsedBoosterBefore = self.hasUsedBoosterBefore
         state.boosterTimer = self.boosterTimer
@@ -191,7 +194,6 @@ class Grid:
     def __init__(self, width, height, initialValue=False, bitRepresentation=None):
         if initialValue not in [False, True]: raise Exception('Grids can only contain booleans')
         self.CELLS_PER_INT = 30
-
         self.width = width
         self.height = height
         self.data = [[initialValue for y in range(height)] for x in range(width)]

@@ -122,7 +122,8 @@ class GameState:
             # Time passes
             if self.isPacman(agentIndex):
                 if not self.getPacmanState(agentIndex).isDead:
-                    state.data.reward[agentIndex] += -TIME_PENALTY # Penalty for waiting around
+                    divider = (self.getPacmanState(agentIndex).boosterTimer > 0) + 1
+                    state.data.reward[agentIndex] += -TIME_PENALTY/float(divider) # Penalty for waiting around
             else:
                 GhostRules.decrementTimer( state.data.agentStates[agentIndex] )
 
@@ -428,7 +429,8 @@ class PacmanRules:
         if( position in state.getCapsules() or position == state.data._capsuleEaten):
             state.data.capsules.remove( position )
             state.data._capsuleEaten = position ## TODO: Add score
-            state.data.reward[agentIndex] += CNST.SCORE_BOOSTER
+            divider = (state.data.tick / state.data.maxTick <= 1/3) + 1
+            state.data.reward[agentIndex] += CNST.SCORE_BOOSTER / divider
             agentState = state.data.agentStates[agentIndex]
             agentState.boosterTimer = 2*CNST.BOOSTER_DURATION
             agentState.hasUsedBoosterBefore = True
@@ -523,13 +525,17 @@ class GhostRules: ## TODO: Calculate for general pacmans
     def collide( state, pacmanState, ghostState, pacmanIndex, ghostIndex):
         if pacmanState.isDead: return
         if ghostState.scaredTimer[pacmanIndex] > 0:
-            state.data.reward[pacmanIndex] += pacmanState.ghostMultiplier * CNST.SCORE_GHOST_EAT
+            multiplier = pacmanState.ghostMultiplier
+            questBonus = GhostRules.getQuestAllGhostEatenBonus(state, pacmanState)
+            print questBonus
+            state.data.reward[pacmanIndex] += multiplier * CNST.SCORE_GHOST_EAT + questBonus
             pacmanState.ghostMultiplier *= CNST.BOOSTER_GHOST_SCORE_MULTIPLICATOR
             GhostRules.placeGhost(state, 
                                   ghostState,
-                                  GhostRules.searchNearestGhostWall(state, ghostIndex),
+                                  GhostRules.searchNearestGhostWall(state, ghostState, ghostIndex),
                                   ghostState.start.direction)
             ghostState.scaredTimer[pacmanIndex] = 0
+            pacmanState.ghostsEaten[ghostIndex] = True
             ghostState.respawnTimer = CNST.GHOST_DEATH_TIME
             state.data._eaten[ghostIndex] = True
         else:
@@ -540,10 +546,18 @@ class GhostRules: ## TODO: Calculate for general pacmans
                     state.data._isGameOver = True
     collide = staticmethod( collide )
 
-    def searchNearestGhostWall(state, agentIndex):
+    def getQuestAllGhostEatenBonus(state, pacmanState):
+        m = sum(pacmanState.ghostsEaten)
+        numGhosts = state.getNumGhost()
+        divider = sum(range(numGhosts))
+        m *= (m != numGhosts)
+        return m/float(divider) * CNST.QUEST_ALL_GHOST_EATEN_SCORE
+    getQuestAllGhostEatenBonus = staticmethod( getQuestAllGhostEatenBonus )
+
+    def searchNearestGhostWall(state, ghostState, agentIndex):
         pos = state.getGhostPosition(agentIndex)
         layout = state.data.layout
-        minDist, ghostWallPos = layout.width*layout.height, (0,0)
+        minDist, ghostWallPos = layout.width*layout.height, (-1,-1)
         for x in range(layout.width):
             for y in range(layout.height):
                 if layout.walls[x][y] == 2:
@@ -551,7 +565,8 @@ class GhostRules: ## TODO: Calculate for general pacmans
                     if dist < minDist:
                         minDist = dist
                         ghostWallPos = (x,y)
-
+        if ghostWallPos == (-1,-1):
+            return ghostState.start.pos
         return ghostWallPos
     searchNearestGhostWall = staticmethod( searchNearestGhostWall )
 

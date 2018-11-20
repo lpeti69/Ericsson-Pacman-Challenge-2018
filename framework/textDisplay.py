@@ -68,7 +68,7 @@ class PacmanGraphics:
             if self.turn % DRAW_EVERY == 0:
                 self.draw(state)
                 self.pause()
-        if state._win or state._lose:
+        if state._isGameOver:
             self.draw(state)
 
     def pause(self):
