@@ -102,7 +102,7 @@ class Configuration:
     def __str__(self):
         return "(x,y)="+str(self.pos)+", "+str(self.direction)
 
-    def generateSuccessor(self, vector):
+    def generateSuccessor(self, vector, layout):
         """
         Generates a new configuration reached by translating the current
         configuration by the action vector.  This is a low-level call and does
@@ -110,12 +110,18 @@ class Configuration:
 
         Actions are movement vectors.
         """
-        x, y= self.pos
+        x, y = self.pos
         dx, dy = vector
         direction = Actions.vectorToDirection(vector)
         if direction == Directions.STOP:
             direction = self.direction # There is no stop direction
-        return Configuration((x + dx, y+dy), direction)
+        x += dx
+        y += dy
+        if x < 0: x += layout.height
+        elif layout.height <= x: x -= layout.height
+        if y < 0: y += layout.width
+        elif layout.width <= y: y -= layout.width
+        return Configuration((x, y), direction)
 
 class AgentState:
     """
@@ -363,8 +369,10 @@ class Actions:
 
         for dir, vec in Actions._directionsAsList:
             dx, dy = vec
-            next_y = y_int + dy
+            next_y = y_int + dy 
             next_x = x_int + dx
+            if next_y > 0: next_y %= walls.width
+            if next_x > 0: next_x %= walls.height
             if not walls[next_x][next_y] in passableWalls: possible.append(dir)
 
         return possible
@@ -378,17 +386,28 @@ class Actions:
         for dir, vec in Actions._directionsAsList:
             dx, dy = vec
             next_x = x_int + dx
-            if next_x < 0 or next_x == walls.width: continue
             next_y = y_int + dy
-            if next_y < 0 or next_y == walls.height: continue
-            if not walls[next_x][next_y] in (1,2): neighbors.append((next_x, next_y))
+            if next_y > 0: next_y %= walls.width
+            if next_x > 0: next_x %= walls.height
+            if not walls[next_x][next_y] in (1,2):
+                if next_x < 0: next_x += walls.height
+                elif walls.height <= next_x: next_x -= walls.height
+                if next_y < 0: next_y += walls.width
+                elif walls.width <= next_y: next_y -= walls.width
+                neighbors.append((next_x, next_y))
         return neighbors
     getLegalNeighbors = staticmethod(getLegalNeighbors)
 
-    def getSuccessor(position, action):
+    def getSuccessor(position, action, layoutSize):
         dx, dy = Actions.directionToVector(action)
         x, y = position
-        return (x + dx, y + dy)
+        x += dx
+        y += dy
+        if x < 0: x += layoutSize[0]
+        elif layoutSize[0] <= x: x -= layoutSize[0]
+        if y < 0: y += layoutSize[1]
+        elif layoutSize[1] <= y: y -= layoutSize[1]
+        return (x, y)
     getSuccessor = staticmethod(getSuccessor)
 
 class GameStateData:

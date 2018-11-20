@@ -402,8 +402,9 @@ class PacmanRules:
             pacmanState.boosterTimer -= 1
         else:
             pacmanState.ghostMultiplier = 1
-        vector = Actions.directionToVector( action, PacmanRules.PACMAN_SPEED ) ## TODO?
-        pacmanState.configuration = pacmanState.configuration.generateSuccessor( vector )
+        vector = Actions.directionToVector( action, PacmanRules.PACMAN_SPEED )
+
+        pacmanState.configuration = pacmanState.configuration.generateSuccessor( vector, state.data.layout )
 
         # Eat
         next = pacmanState.configuration.getPosition()
@@ -495,7 +496,7 @@ class GhostRules: ## TODO: Calculate for general pacmans
 
             speed = GhostRules.GHOST_SPEED
             vector = Actions.directionToVector( action, speed )
-            ghostState.configuration = ghostState.configuration.generateSuccessor( vector )
+            ghostState.configuration = ghostState.configuration.generateSuccessor( vector, state.data.layout )
     applyAction = staticmethod( applyAction )
 
     def decrementTimer( ghostState ):
