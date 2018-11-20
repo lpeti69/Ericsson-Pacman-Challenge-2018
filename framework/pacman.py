@@ -40,21 +40,6 @@ To play your first game, type 'python pacman.py' from the command line.
 The keys are 'a', 's', 'd', and 'w' to move (or arrow keys).  Have fun!
 """
 
-class CNST(object):
-    FIELD_WALL                          = 'F'
-    FIELD_EMPTY                         = ' '
-    FIELD_FOOD                          = '1'
-    FIELD_BOOSTER                       = '+'
-    FIELD_GHOST_WALL                    = 'G'
-    SCORE_FOOD                          = 10
-    SCORE_GHOST_EAT                     = 50
-    SCORE_GHOST_DEATH                   = -200
-    SCORE_BOOSTER                       = 50
-    GHOST_DEATH_TIME                    = 5
-    BOOSTER_DURATION                    = 21
-    BOOSTER_GHOST_SCORE_MULTIPLICATOR   = 2
-    MAX_TICK                            = 480
-
 ## TODO:
 ## Change misc funs in GameState
 ##
@@ -66,6 +51,7 @@ from game import Actions
 from game import Configuration
 from util import nearestPoint
 from util import manhattanDistance
+from util import CNST
 import util, layout
 import sys, types, time, random, os
 
@@ -123,8 +109,7 @@ class GameState:
 
         # Copy current state
         state = GameState(self)
-
-        if state.data.tick == CNST.MAX_TICK:
+        if state.data.tick == state.data.maxTick:
             state.data._isGameOver = True
         else:
             # Let agent's logic deal with its action's effects on the board
@@ -136,7 +121,8 @@ class GameState:
 
             # Time passes
             if self.isPacman(agentIndex):
-                state.data.reward[agentIndex] += -TIME_PENALTY # Penalty for waiting around
+                if not self.getPacmanState(agentIndex).isDead:
+                    state.data.reward[agentIndex] += -TIME_PENALTY # Penalty for waiting around
             else:
                 GhostRules.decrementTimer( state.data.agentStates[agentIndex] )
 
@@ -194,14 +180,14 @@ class GameState:
             raise Exception("Ghost's index passed to getPacmanPosition")
         return self.data.agentStates[agentIndex].getPosition()
 
-    def getEnemyPacmanStates(self):
-        return [pacmanState for agent in self.data.agentStates if agent.isPacman and agent.index > 0]
+    def getPacmanStates(self):
+        return [agent for agent in self.data.agentStates if agent.isPacman]
 
-    def getEnemyPacmanPositions(self):
-        return [enemy.getPosition() for enemy in self.getEnemyPacmanStates()]
+    def getPacmanPositions(self):
+        return [enemy.getPosition() for enemy in self.getPacmanStates()]
 
     def getGhostStates( self ):
-        return [ghostState for agent in self.data.agentStates if not agent.isPacman]
+        return [agentState for agentState in self.data.agentStates if not agentState.isPacman]
 
     def getGhostState( self, agentIndex ): ## todo atirni
         if self.isPacman(agentIndex) or agentIndex >= self.getNumAgents():
@@ -401,6 +387,7 @@ class PacmanRules:
         """
         Edits the state to reflect the results of the action.
         """
+        if state.getPacmanState(agentIndex).isDead: return
         legal = PacmanRules.getLegalActions( state, agentIndex )
         if action not in legal:
             raise Exception("Illegal action " + str(action))
@@ -408,11 +395,13 @@ class PacmanRules:
         pacmanState = state.data.agentStates[agentIndex]
 
         # Update Configuration
-        speed = PacmanRules.PACMAN_SPEED
+        for index in range( pacmanState.numAgents ):
+            pacmanState.lastCollisions[index] += 1
         if pacmanState.boosterTimer > 0:
             pacmanState.boosterTimer -= 1
-            speed *= 2
-        vector = Actions.directionToVector( action, speed ) ## TODO?
+        else:
+            pacmanState.ghostMultiplier = 1
+        vector = Actions.directionToVector( action, PacmanRules.PACMAN_SPEED ) ## TODO?
         pacmanState.configuration = pacmanState.configuration.generateSuccessor( vector )
 
         # Eat
@@ -426,7 +415,7 @@ class PacmanRules:
     def consume( position, state, agentIndex ):
         x,y = position
         # Eat food
-        if state.data.food[x][y]:
+        if state.data.food[x][y] or position == state.data._foodEaten:
             state.data.reward[agentIndex] += CNST.SCORE_FOOD  ## TODO: Change for quest
             state.data.food = state.data.food.copy()
             state.data.food[x][y] = False
@@ -434,20 +423,45 @@ class PacmanRules:
             # TODO: cache numFood?
             numFood = state.getNumFood()
             if numFood == 0 and not state.data._isGameOver:
-                state.data.reward += 5 ## TODO
                 state.data._isGameOver = True
         # Eat capsule
-        if( position in state.getCapsules() ): ## TODO: Set scared time tracking for every pacman
+        if( position in state.getCapsules() or position == state.data._capsuleEaten):
             state.data.capsules.remove( position )
             state.data._capsuleEaten = position ## TODO: Add score
-            state.data.reward[agentIndex] = CNST.SCORE_BOOSTER
+            state.data.reward[agentIndex] += CNST.SCORE_BOOSTER
+            agentState = state.data.agentStates[agentIndex]
+            agentState.boosterTimer = 2*CNST.BOOSTER_DURATION
+            agentState.hasUsedBoosterBefore = True
             # Reset all ghosts' scared timers
             for index in range( 1, state.data.numGhosts + 1 ): ## TODO: only ghosts
                 state.data.agentStates[index].scaredTimer[agentIndex] = SCARED_TIME ## TODO: change?
     consume = staticmethod( consume )
 
     def checkCollision( state, agentIndex ):
-        pass ## TODO
+        maxDiff, maxIndex, isCollision = 0, 0, False
+        pacmanState = state.getPacmanState(agentIndex)
+        for ps in state.getPacmanStates():
+            if ((ps.index != agentIndex and ps.lastCollisions[agentIndex] > CNST.COLLISION_TIMER) \
+                and ps.getPosition() == pacmanState.getPosition()) and not ps.isDead:
+                diff = abs(state.data.score[agentIndex] - state.data.score[ps.index])
+                if diff > maxDiff:
+                   isCollision = True
+                   maxIndex = ps.index
+                   maxDiff = diff
+                elif diff == maxDiff:
+                    isCollision = False
+        if isCollision:
+            pacmanState.lastCollisions[maxIndex] = 0
+            state.data.agentStates[maxIndex].lastCollisions[agentIndex] = 0
+            score1, score2 = state.data.score[agentIndex], state.data.score[maxIndex]
+            print score1,score2
+            if state.data.score[agentIndex] > state.data.score[maxIndex]:
+                state.data.score[agentIndex] -= maxDiff/4
+                state.data.score[maxIndex] += maxDiff/4
+            else:
+                state.data.score[agentIndex] += maxDiff/4
+                state.data.score[maxIndex] -= maxDiff/4
+            print state.data.score[agentIndex], state.data.score[maxIndex]
     checkCollision = staticmethod( checkCollision )
 
 class GhostRules: ## TODO: Calculate for general pacmans
@@ -471,54 +485,59 @@ class GhostRules: ## TODO: Calculate for general pacmans
     getLegalActions = staticmethod( getLegalActions )
 
     def applyAction( state, action, ghostIndex):
-
-        legal = GhostRules.getLegalActions( state, ghostIndex )
-        if action not in legal:
-            raise Exception("Illegal ghost action " + str(action) + " " + str(state.data.agentStates[ghostIndex]) + " " + str(ghostIndex))
-
         ghostState = state.getGhostState(ghostIndex)
-        speed = GhostRules.GHOST_SPEED
-        vector = Actions.directionToVector( action, speed )
-        ghostState.configuration = ghostState.configuration.generateSuccessor( vector )
+        if ghostState.respawnTimer == 0:
+            legal = GhostRules.getLegalActions( state, ghostIndex )
+            if action not in legal:
+                raise Exception("Illegal ghost action " + str(action) + " " + str(state.data.agentStates[ghostIndex]) + " " + str(ghostIndex))
+
+            speed = GhostRules.GHOST_SPEED
+            vector = Actions.directionToVector( action, speed )
+            ghostState.configuration = ghostState.configuration.generateSuccessor( vector )
     applyAction = staticmethod( applyAction )
 
-    def decrementTimer( ghostState):
-        timer = ghostState.scaredTimer[0]
-        if timer == 1:
-            ghostState.configuration.pos = nearestPoint( ghostState.configuration.pos )
-        ghostState.scaredTimer[0] = max( 0, timer - 1 )
+    def decrementTimer( ghostState ):
+        for index in range( ghostState.numAgents ):
+            ghostState.scaredTimer[index] = max( 0, ghostState.scaredTimer[index] - 1 )
+        ghostState.respawnTimer = max(0, ghostState.respawnTimer -1)
     decrementTimer = staticmethod( decrementTimer )
 
-    def checkDeath( state, agentIndex): ## TODO check for all pacmans
-        pacmanPosition = state.getPacmanPosition(0)
-        if agentIndex == 0: # Pacman just moved; Anyone can kill him
+    def checkDeath( state, agentIndex):
+        agentState = state.data.agentStates[agentIndex]
+        agentPos = agentState.getPosition()
+        if state.isPacman(agentIndex): # Pacman just moved; Anyone can kill him
             for index in range( 1, state.data.numGhosts + 1 ):
                 ghostState = state.data.agentStates[index]
                 ghostPosition = ghostState.configuration.getPosition()
-                if GhostRules.canKill( pacmanPosition, ghostPosition ):
-                    GhostRules.collide( state, ghostState, index )
+                if GhostRules.canKill( agentPos, ghostPosition ):
+                    GhostRules.collide( state, agentState, ghostState, agentIndex, index )
         else:
-            ghostState = state.data.agentStates[agentIndex]
-            ghostPosition = ghostState.configuration.getPosition()
-            if GhostRules.canKill( pacmanPosition, ghostPosition ):
-                GhostRules.collide( state, ghostState, agentIndex )
+            for index in range( state.data.agentStates[agentIndex].numAgents ):
+                if state.isPacman(index):
+                    pacmanState = state.data.agentStates[index]
+                    pacmanPosition = pacmanState.configuration.getPosition()
+                    if GhostRules.canKill( pacmanPosition, agentPos ):
+                        GhostRules.collide( state, pacmanState, agentState, index, agentIndex )
     checkDeath = staticmethod( checkDeath )
 
-    def collide( state, ghostState, agentIndex): ## TODO apply for all pacmans
-        if ghostState.scaredTimer[0] > 0:
-            state.data.reward[agentIndex] += CNST.SCORE_GHOST_EAT ## TODO
-            ##state.data.reward += CNST.SCORE_GHOST_EAT
+    def collide( state, pacmanState, ghostState, pacmanIndex, ghostIndex):
+        if pacmanState.isDead: return
+        if ghostState.scaredTimer[pacmanIndex] > 0:
+            state.data.reward[pacmanIndex] += pacmanState.ghostMultiplier * CNST.SCORE_GHOST_EAT
+            pacmanState.ghostMultiplier *= CNST.BOOSTER_GHOST_SCORE_MULTIPLICATOR
             GhostRules.placeGhost(state, 
                                   ghostState,
-                                  GhostRules.searchNearestGhostWall(state, agentIndex),
-                                  ghostState.start.direction) ## todo
-            ghostState.scaredTimer[0] = 0
-            # Added for first-person
-            state.data._eaten[agentIndex] = True ## TODO
+                                  GhostRules.searchNearestGhostWall(state, ghostIndex),
+                                  ghostState.start.direction)
+            ghostState.scaredTimer[pacmanIndex] = 0
+            ghostState.respawnTimer = CNST.GHOST_DEATH_TIME
+            state.data._eaten[ghostIndex] = True
         else:
-            if not state.data._isGameOver:
-                state.data.reward[agentIndex] -= 500 ## TODO
-                state.data._isGameOver = True
+            if not state.data._isGameOver and not pacmanState.isDead:
+                state.data.reward[pacmanIndex] += CNST.SCORE_GHOST_DEATH
+                state.data.agentStates[pacmanIndex].isDead = True
+                if pacmanIndex == 0:
+                    state.data._isGameOver = True
     collide = staticmethod( collide )
 
     def searchNearestGhostWall(state, agentIndex):
@@ -595,7 +614,7 @@ def readCommand( argv ):
                       metavar = 'TYPE', default='RandomGhost')
     parser.add_option('-e', '--enemy_pacmans', dest='enemyPacmans', ## TODO: Added
                       help=default('the enemy pacman agent TYPE in the pacmanAgents module to use'),
-                      metavar = 'TYPE', default='GreedyAgent')
+                      metavar = 'TYPE', default='LeftTurnAgent')
     parser.add_option('-u', '--num_enemy_pacmans', dest='numEnemyPacmans', ## TODO: Added
                       help=default('The maximum number of enemy pacmans while generation'), 
                       type='int', default=3)

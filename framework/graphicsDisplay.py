@@ -281,11 +281,6 @@ class PacmanGraphics:
         else:
             fillColor = ENEMY_PACMAN_COLOR
 
-        if self.capture:
-            outlineColor = TEAM_COLORS[index % 2]
-            fillColor = GHOST_COLORS[index]
-            width = PACMAN_CAPTURE_OUTLINE_WIDTH
-
         return [circle(screen_point, PACMAN_SCALE * self.gridSize,
                        fillColor = fillColor, outlineColor = outlineColor,
                        endpoints = endpoints,
@@ -335,7 +330,7 @@ class PacmanGraphics:
         refresh()
 
     def getGhostColor(self, ghost, ghostIndex):
-        if ghost.scaredTimer > 0:
+        if ghost.scaredTimer[0] > 0:
             return SCARED_COLOR
         else:
             return GHOST_COLORS[ghostIndex]
@@ -402,7 +397,7 @@ class PacmanGraphics:
             move_by(ghostImagePart, delta)
         refresh()
 
-        if ghost.scaredTimer > 0:
+        if ghost.scaredTimer[0] > 0:
             color = SCARED_COLOR
         else:
             color = GHOST_COLORS[ghostIndex]
@@ -645,18 +640,12 @@ class FirstPersonPacmanGraphics(PacmanGraphics):
         self.previousState = state
 
     def lookAhead(self, config, state):
-        if config.getDirection() == 'Stop':
-            return
-        else:
-            pass
-            # Draw relevant ghosts
-            allGhosts = state.getGhostStates()
-            visibleGhosts = state.getVisibleGhosts()
-            for i, ghost in enumerate(allGhosts):
-                if ghost in visibleGhosts:
-                    self.drawGhost(ghost, i)
-                else:
-                    self.currentGhostImages[i] = None
+        # Draw relevant ghosts
+        allGhosts = state.getGhostStates()
+        print allGhosts
+        visibleGhosts = state.getVisibleGhosts()
+        for i, ghost in enumerate(allGhosts):
+            self.drawGhost(ghost, i)
 
     def getGhostColor(self, ghost, ghostIndex):
         return GHOST_COLORS[ghostIndex]

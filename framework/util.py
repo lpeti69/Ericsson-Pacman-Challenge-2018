@@ -17,6 +17,20 @@ import inspect
 import heapq, random
 import cStringIO
 
+class CNST(object):
+    FIELD_WALL                          = 'F'
+    FIELD_EMPTY                         = ' '
+    FIELD_FOOD                          = '1'
+    FIELD_BOOSTER                       = '+'
+    FIELD_GHOST_WALL                    = 'G'
+    SCORE_FOOD                          = 10
+    SCORE_GHOST_EAT                     = 50
+    SCORE_GHOST_DEATH                   = -100
+    SCORE_BOOSTER                       = 50
+    GHOST_DEATH_TIME                    = 5
+    BOOSTER_DURATION                    = 21
+    BOOSTER_GHOST_SCORE_MULTIPLICATOR   = 2
+    COLLISION_TIMER                     = 21
 
 class FixedRandom:
     def __init__(self):
