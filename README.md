@@ -5,7 +5,6 @@ TODO
 -
 primary
 -
-* Let ghosts pass through sideways - DONE
 * Generate random 31x30maps with 4 ghosts and 2 enemy pacmans
 * Write the ericcson specific implementation of this program with the calculated weights
 * Define metrics for evaluating the results of one or several runs(results) for a given agent's logic
