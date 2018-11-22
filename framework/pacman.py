@@ -679,7 +679,7 @@ def readCommand( argv ):
     if options.numTraining > 0:
         args['numTraining'] = options.numTraining
         if 'numTraining' not in agentOpts: agentOpts['numTraining'] = options.numTraining
-    pacman = pacmanType(0, **agentOpts) # Instantiate Pacman with agentArgs ## TODO: Pacman always with 0 index
+    pacman = pacmanType() # Instantiate Pacman with agentArgs ## TODO: Pacman always with 0 index
     args['pacmans'] = [pacman]
 
     # Don't display training games

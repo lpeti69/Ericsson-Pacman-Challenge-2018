@@ -59,7 +59,7 @@ class ReinforcementLearningAgent(Agent):
         self.distancer = None
         self.observationHistory = []
         self.timeForComputing = timeForComputing
-        self.avgTimeComputing = 0
+        self.computationTimes = []
         self.display = None
 
     def __str__(self):
@@ -72,8 +72,9 @@ class ReinforcementLearningAgent(Agent):
 
     def registerInitialState(self, gameState):
         self.observationHistory = []
-        self.distancer = distanceCalculator.Distancer(gameState.data.layout)
-        self.distancer.getMazeDistances()
+        ## TODO: getMazeDistances() calculate with only walls
+        #self.distancer = distanceCalculator.Distancer(gameState.data.layout)
+        #self.distancer.getMazeDistances()
 
         import __main__
         if '_display' in dir(__main__):
@@ -83,7 +84,7 @@ class ReinforcementLearningAgent(Agent):
         ## TODO: Add result handling
         ## ide kell irni valamit...
         print self
-        print "Avg time for evaulate: %.3f" % self.avgTimeComputing
+        print "Avg time for evaulate: %.3f" % sum(self.computationTimes / len(self.computationTimes))
         print gameState.data.score[0]
 
     def updateWeights(self, state, alpha, gamma):
@@ -104,7 +105,8 @@ class ReinforcementLearningAgent(Agent):
 
 class MyAgent(ReinforcementLearningAgent):
 
-    def __init__(self):
+    def __init__(self, index = 0):
+        self.index = index
         self.weights = {}
         self.positionSelector = {
             'food': lambda s, x, y: s.hasFood(x,y),
@@ -118,7 +120,7 @@ class MyAgent(ReinforcementLearningAgent):
         return BFS(state, [state.getMyPacmanPosition()], self.positionSelector[selector])
 
     def registerInitialState(self, gameState):
-        self.start = gameState.getAgentPosition(self.index)
+        self.start = gameState.getMyPacmanPosition()
         ReinforcementLearningAgent.registerInitialState(self, gameState)
 
     def chooseAction(self, gameState):
@@ -126,7 +128,7 @@ class MyAgent(ReinforcementLearningAgent):
 
         start = time.time()
         values = [self.evaluate(gameState, a) for a in actions]
-        self.avgTimeComputing += time.time() - start
+        self.computationTimes.append(time.time() - start)
 
         maxValue = max(values)
         bestActions = [a for a, v in zip(actions, values) if v == maxValue]
