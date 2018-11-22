@@ -14,7 +14,7 @@
 
 from pacman import Directions
 from game import Agent
-from util import distanceCalculator
+import distanceCalculator
 import random
 import game
 import util
@@ -81,12 +81,12 @@ class ReinforcementLearningAgent(Agent):
 
     def final(self, gameState):
         ## TODO: Add result handling
-        ## ide kell írni valamit...
+        ## ide kell irni valamit...
         print self
         print "Avg time for evaulate: %.3f" % self.avgTimeComputing
         print gameState.data.score[0]
 
-    def updateWeights(alpha, gamma):
+    def updateWeights(self, state, alpha, gamma):
         pass
 
     def getAction(self, gameState):

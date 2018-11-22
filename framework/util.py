@@ -666,7 +666,7 @@ def unmutePrint():
     sys.stdout = _ORIGINAL_STDOUT
     #sys.stderr = _ORIGINAL_STDERR
 
-def BFS(state, starts, isDestination, maxDist = sys.maxsize):
+def BFS(state, starts, isTarget, maxDist = sys.maxsize):
     width   = state.data.layout.width
     height  = state.data.layout.height
     dist    = np.zeros(shape=(height,width))
@@ -696,7 +696,7 @@ def BFS(state, starts, isDestination, maxDist = sys.maxsize):
                     break
                 visited[x][y] = True
                 Q.put((x,y))
-                if isDestination(state, x, y):
+                if isTarget(state, x, y):
                     count += 1
                     closest = min(closest, dist[x][y])
                     furthest = max(furthest, dist[x][y])
