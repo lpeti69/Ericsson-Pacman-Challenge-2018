@@ -666,3 +666,39 @@ def unmutePrint():
     sys.stdout = _ORIGINAL_STDOUT
     #sys.stderr = _ORIGINAL_STDERR
 
+def BFS(state, starts, isDestination, maxDist = sys.maxsize):
+    width   = state.data.layout.width
+    height  = state.data.layout.height
+    dist    = np.zeros(shape=(height,width))
+    visited = [[False for _ in range(width)] for _ in range(height)]
+    Q       = Queue()
+    #
+    count = 0
+    closest = maxDist + 1
+    furthest = -1
+    #
+    for pos in starts:
+        Q.put(pos)
+        visited[pos[0]][pos[1]] = True
+    while not Q.empty():
+        field = Q.get()
+        for direction in [(0,1), (1,0), (-1,0), (0,-1)]:
+            # Map clip
+            y, x = field[0]+direction[0], field[1]+direction[1]
+            if y < 0: y += width
+            elif y >= width: y -= width
+            if x < 0: y += height
+            elif x >= height: x -= height
+            # Wall check and visit
+            if state.data.layout.walls[x][y] == 0 and not visited[x][y]:
+                dist[x][y] = dist[field[0]][field[1]] + 1
+                if dist[x][y] > maxDist:
+                    break
+                visited[x][y] = True
+                Q.put((x,y))
+                if isDestination(state, x, y):
+                    count += 1
+                    closest = min(closest, dist[x][y])
+                    furthest = max(furthest, dist[x][y])
+    
+    return (count, closest, furthest)

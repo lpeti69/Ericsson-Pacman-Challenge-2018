@@ -51,6 +51,8 @@ class GreedyAgent(Agent):
         return random.choice(bestActions)
 
 
+# ide csak absztrakt dolgok jonnek
+# foleg static meg egyeb helper..
 class ReinforcementLearningAgent(Agent):
     def __init__( self, index, timeForComputing = .25 ):
         self.index = index
@@ -75,7 +77,11 @@ class ReinforcementLearningAgent(Agent):
             self.display = __main__._display
 
     def final(self, gameState):
+        # ide kell irni, mindenkeppen
         self.observationHistory = []
+
+    def updateWeights(alpha, gamma):
+        pass
 
     def getAction(self, gameState):
         self.observationHistory.append(gameState)
@@ -92,7 +98,22 @@ class ReinforcementLearningAgent(Agent):
     def chooseAction(self, gameState):
         util.raiseNotDefined()
 
-class MyAgent(ReinforcementLearningAgent): ## TODO
+
+
+class MyAgent(ReinforcementLearningAgent):
+
+    def __init__(self):
+        self.weights = {}
+        self.positionSelector = {
+            'food': lambda s, x, y: s.hasFood(x,y),
+            'caps': lambda s, x, y: (x,y) in s.getCapsules(),
+            'ghosts': lambda s, x, y: (x,y) in s.getGhostPositions(),
+            'enemy': lambda s, x, y: (x,y) in s.getEnemyPacmanPositions()
+        }
+
+    # usage e.g.: (count, closest, furthest) = closest(state, 'food')
+    def closest(self, state, selector):
+        return BFS(state, [state.getMyPacmanPosition()], self.positionSelector[selector])
 
     def registerInitialState(self, gameState):
         self.start = gameState.getAgentPosition(self.index)
