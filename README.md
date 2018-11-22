@@ -1,6 +1,9 @@
 # Ericcson-Programozo-Bajnoksag
 Team Szukcesszív Approximátorok's solution
 
+### How to run
+`python pacman.py --pacman=MyAgent --layout=layouts/er1`
+
 TODO
 -
 primary

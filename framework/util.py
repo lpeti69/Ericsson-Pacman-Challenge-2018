@@ -701,4 +701,4 @@ def BFS(state, starts, isTarget, maxDist = sys.maxsize):
                     closest = min(closest, dist[x][y])
                     furthest = max(furthest, dist[x][y])
     
-    return (count, closest, furthest)
+    return (count, closest, furthest, dist, visited)
