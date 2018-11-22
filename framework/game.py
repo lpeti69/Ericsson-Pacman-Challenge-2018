@@ -137,6 +137,10 @@ class AgentState:
     ## 3: Pacman collisions
     ## 4: Booster/food eat
     ## TODO: measure: 3 ghost eaten in 10 tick
+    ## TODO: Generate random 31x30maps with 4 ghosts and 2 enemy pacmans
+    ## TODO: Write the ericcson specific implementation of this program with the calculated weights
+    ## TODO: Define metrics for evaluating the results of one or several runs(results) for a given agent's logic
+    ## TODO: Add features (to be discussed)
     def __init__( self, startConfiguration, isPacman, index, numAgents ):
         self.start = startConfiguration
         self.configuration = startConfiguration

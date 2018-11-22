@@ -14,6 +14,7 @@
 
 from pacman import Directions
 from game import Agent
+from util import distanceCalculator
 import random
 import game
 import util
@@ -48,6 +49,48 @@ class GreedyAgent(Agent):
         bestScore = max(scored)[0]
         bestActions = [pair[1] for pair in scored if pair[0] == bestScore]
         return random.choice(bestActions)
+
+
+class ReinforcementLearningAgent(Agent):
+    def __init__( self, index, timeForComputing = .25 ):
+        self.index = index
+        self.distancer = None
+        self.observationHistory = []
+        self.timeForComputing = timeForComputing
+        self.display = None
+
+    def observationFunction(self, gameState):
+        # return gameState.makeObservation(self.index)
+        pass
+
+    def registerInitialState(self, gameState):
+        self.red = gameState.isOnRedTeam(self.index)
+        self.distancer = distanceCalculator.Distancer(gameState.data.layout)
+
+        # comment this out to forgo maze distance computation and use manhattan distances
+        self.distancer.getMazeDistances()
+
+        import __main__
+        if '_display' in dir(__main__):
+            self.display = __main__._display
+
+    def final(self, gameState):
+        self.observationHistory = []
+
+    def getAction(self, gameState):
+        self.observationHistory.append(gameState)
+
+        myState = gameState.getAgentState(self.index)
+        myPos = myState.getPosition()
+        #if myPos != nearestPoint(myPos):
+        # We're halfway from one position to the next
+            #return gameState.getLegalActions(self.index)[0]
+        #else:
+        return self.chooseAction(gameState)
+
+    
+    def chooseAction(self, gameState):
+        util.raiseNotDefined()
 
 class MyAgent(Agent): ## TODO
     def getAction(self, state):
