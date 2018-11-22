@@ -185,7 +185,11 @@ class GameState:
         return [agent for agent in self.data.agentStates if agent.isPacman]
 
     def getPacmanPositions(self):
-        return [enemy.getPosition() for enemy in self.getPacmanStates()]
+        return [agent.getPosition() for agent in self.data.agentStates if agent.isPacman]
+
+    def getEnemyPacmanPositions(self):
+        return [agent.getPosition() for agent in self.data.agentStates
+                    if agent.isPacman and agent.index != 0]
 
     def getGhostStates( self ):
         return [agentState for agentState in self.data.agentStates if not agentState.isPacman]
@@ -201,7 +205,8 @@ class GameState:
         return self.data.agentStates[agentIndex].getPosition()
 
     def getGhostPositions(self): ## todo
-        return [s.getPosition() for s in self.getGhostStates()]
+        return [agentState.getPosition() for agentState in self.data.agentStates
+                    if not agentState.isPacman]
 
     def getNumGhost(self):
         return self.data.numGhosts

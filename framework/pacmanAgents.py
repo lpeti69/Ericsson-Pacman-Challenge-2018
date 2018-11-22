@@ -57,17 +57,20 @@ class ReinforcementLearningAgent(Agent):
         self.distancer = None
         self.observationHistory = []
         self.timeForComputing = timeForComputing
+        self.avgTimeComputing = 0
         self.display = None
 
+    def __str__(self):
+        print "AgentState: %s" % self.observationHistory[-1].data.agentStates[self.index]
+        print "Weights: %s" % self.weights
+        print "Observationhistory: %s" % self.observationHistory
+
     def observationFunction(self, gameState):
-        # return gameState.makeObservation(self.index)
-        pass
+        return gameState.deepCopy()
 
     def registerInitialState(self, gameState):
-        self.red = gameState.isOnRedTeam(self.index)
+        self.observationHistory = []
         self.distancer = distanceCalculator.Distancer(gameState.data.layout)
-
-        # comment this out to forgo maze distance computation and use manhattan distances
         self.distancer.getMazeDistances()
 
         import __main__
@@ -75,22 +78,22 @@ class ReinforcementLearningAgent(Agent):
             self.display = __main__._display
 
     def final(self, gameState):
-        self.observationHistory = []
+        ## TODO: Add result handling
+        print self
+        print "Avg time for evaulate: %.3f" % self.avgTimeComputing
+        print gameState.data.score[0]
 
     def getAction(self, gameState):
         self.observationHistory.append(gameState)
+        myPos = gameState.getMyPacmanPosition()
+        if myPos != nearestPoint(myPos):
+            return gameState.getLegalActions(self.index)[0]
+        else:
+            return self.chooseAction(gameState)
 
-        myState = gameState.getAgentState(self.index)
-        myPos = myState.getPosition()
-        #if myPos != nearestPoint(myPos):
-        # We're halfway from one position to the next
-            #return gameState.getLegalActions(self.index)[0]
-        #else:
-        return self.chooseAction(gameState)
-
-    
     def chooseAction(self, gameState):
         util.raiseNotDefined()
+
 
 class MyAgent(ReinforcementLearningAgent): ## TODO
 
@@ -101,37 +104,21 @@ class MyAgent(ReinforcementLearningAgent): ## TODO
     def chooseAction(self, gameState):
         actions = gameState.getLegalActions(self.index)
 
-        # You can profile your evaluation time by uncommenting these lines
-        # start = time.time()
+        start = time.time()
         values = [self.evaluate(gameState, a) for a in actions]
-        # print 'eval time for agent %d: %.4f' % (self.index, time.time() - start)
+        self.avgTimeComputing += time.time() - start
 
         maxValue = max(values)
         bestActions = [a for a, v in zip(actions, values) if v == maxValue]
-
-        foodLeft = len(self.getFood(gameState).asList())
-
-        if foodLeft <= 2:
-        bestDist = 9999
-        for action in actions:
-            successor = self.getSuccessor(gameState, action)
-            pos2 = successor.getAgentPosition(self.index)
-            dist = self.getMazeDistance(self.start,pos2)
-            if dist < bestDist:
-            bestAction = action
-            bestDist = dist
-        return bestAction
-
         return random.choice(bestActions)
 
     def getSuccessor(self, gameState, action):
         successor = gameState.generateSuccessor(self.index, action)
         pos = successor.getAgentState(self.index).getPosition()
         if pos != nearestPoint(pos):
-        # Only half a grid position was covered
-        return successor.generateSuccessor(self.index, action)
+            return successor.generateSuccessor(self.index, action)
         else:
-        return successor
+            return successor
 
     def evaluate(self, gameState, action):
         features = self.getFeatures(gameState, action)
@@ -148,9 +135,6 @@ class MyAgent(ReinforcementLearningAgent): ## TODO
 
     def getWeights(self, gameState, action):
         return {'asd': 1.0}
-
-    def getAction(self, state):
-        return Directions.STOP
 
 def scoreEvaluation(state, agentIndex):
     return state.getScore(agentIndex)
