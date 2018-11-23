@@ -14,10 +14,10 @@
 
 from pacman import Directions
 from game import Agent
+from util import nearestPoint
 import distanceCalculator
-import random
-import game
-import util
+import numpy as np
+import random, time, game, util
 
 class LeftTurnAgent(Agent):
     "An agent that turns left at every opportunity"
@@ -56,25 +56,24 @@ class GreedyAgent(Agent):
 class ReinforcementLearningAgent(Agent):
     def __init__( self, index, timeForComputing = .25 ):
         self.index = index
-        self.distancer = None
         self.observationHistory = []
         self.timeForComputing = timeForComputing
         self.computationTimes = []
+        self.approximators = {}
         self.display = None
 
     def __str__(self):
-        print "AgentState: %s" % self.observationHistory[-1].data.agentStates[self.index]
-        print "Weights: %s" % self.weights
-        print "Observationhistory: %s" % self.observationHistory
+        return "AgentState: {}\nApproximators: {}\nComputationTimes: {}".format(
+            self.observationHistory[-1].data.agentStates[self.index],
+            self.approximators,
+            self.computationTimes
+        )
 
     def observationFunction(self, gameState):
         return gameState.deepCopy()
 
     def registerInitialState(self, gameState):
         self.observationHistory = []
-        ## TODO: getMazeDistances() calculate with only walls
-        #self.distancer = distanceCalculator.Distancer(gameState.data.layout)
-        #self.distancer.getMazeDistances()
 
         import __main__
         if '_display' in dir(__main__):
@@ -84,35 +83,67 @@ class ReinforcementLearningAgent(Agent):
         ## TODO: Add result handling
         ## ide kell irni valamit...
         print self
-        print "Avg time for evaulate: %.3f" % sum(self.computationTimes / len(self.computationTimes))
+        print "Avg time for evaulate: {}".format(sum(self.computationTimes) / float(len(self.computationTimes)))
         print gameState.data.score[0]
 
-    def updateWeights(self, state, alpha, gamma):
-        pass
+    def updateWeights(self, state, action, alpha = .25, gamma = .75):
+        ## TODO: Need to handle r(it is not provided, since the state reward not updated yet)
+        Qsa = self.evaluate(state, action)
+        newState = state.deepCopy().generateSuccessor(self.index, action)
+        r = newState.data.reward[self.index]
+        ## -1 provided for epsilon => it will select according to the current strategy
+        newAction = self.getPolicyAction(newState)
+        maxQsa = self.evaluate(newState, newAction)
+        ## TODO: Optimalize: vector function?
+        for featureName, (feature, weight) in self.approximators:
+            weight += alpha*(r + gamma*maxQsa - Qsa)*feature(newState)
 
-    def getAction(self, gameState):
+    ## Convert {key: lambda} -> {key: (lambda, initWeight)} ex.: setApproximators(self.positionSelector, 0)
+    def setApproximators(self, approximators, initialWeightValues):
+        for key, fun in approximators.items():
+            self.approximators[key] = (fun, initialWeightValues)
+
+    ## Approximates Q(s,a)
+    def evaluate(self, gameState, action):
+        successor = self.getSuccessor(gameState, action)
+        Qsa = 0
+        for featureName, (feature, wegight) in self.approximators:
+            temp = weight * feature(gameState)
+            Qsa += temp
+            print "Feature: {}, value: {}".format(featureName, temp)
+        return Qsa
+
+    def getSuccessor(self, gameState, action):
+        successor = gameState.generateSuccessor(self.index, action)
+        pos = successor.getMyPacmanPosition()
+        if pos != nearestPoint(pos):
+            return successor.generateSuccessor(self.index, action)
+        else:
+            return successor
+
+    def getAction(self, gameState, decay = .995):
         self.observationHistory.append(gameState)
         myPos = gameState.getMyPacmanPosition()
         if myPos != nearestPoint(myPos):
             return gameState.getLegalActions(self.index)[0]
-        else:
-            return self.chooseAction(gameState)
+        
+        epsilon = np.power(gameState.data.tick, decay)
+        action = self.chooseAction(gameState, epsilon)
+        self.updateWeights(gameState, action)
+        return action
 
-    def chooseAction(self, gameState):
+    def chooseAction(self, gameState, epsilon):
         util.raiseNotDefined()
 
-
-
 class MyAgent(ReinforcementLearningAgent):
-
     def __init__(self, index = 0):
-        self.index = index
+        ReinforcementLearningAgent.__init__(self, index)
         self.weights = {}
         self.positionSelector = {
-            'food': lambda s, x, y: s.hasFood(x,y),
-            'caps': lambda s, x, y: (x,y) in s.getCapsules(),
-            'ghosts': lambda s, x, y: (x,y) in s.getGhostPositions(),
-            'enemy': lambda s, x, y: (x,y) in s.getEnemyPacmanPositions()
+            'food':     lambda s, x, y: s.hasFood(x,y),
+            'caps':     lambda s, x, y: (x,y) in s.getCapsules(),
+            'ghosts':   lambda s, x, y: (x,y) in s.getGhostPositions(),
+            'enemy':    lambda s, x, y: (x,y) in s.getEnemyPacmanPositions()
         }
 
     # usage e.g.: (count, closest, furthest) = closest(state, 'food')
@@ -123,40 +154,21 @@ class MyAgent(ReinforcementLearningAgent):
         self.start = gameState.getMyPacmanPosition()
         ReinforcementLearningAgent.registerInitialState(self, gameState)
 
-    def chooseAction(self, gameState):
+    def getPolicyAction(self, gameState):
+        return self.chooseAction(gameState, 0)
+
+    def chooseAction(self, gameState, epsilon):
         actions = gameState.getLegalActions(self.index)
 
-        start = time.time()
-        values = [self.evaluate(gameState, a) for a in actions]
-        self.computationTimes.append(time.time() - start)
+        bestActions = actions
+        if np.random.uniform(0,1) >= epsilon:
+            start = time.time()
+            values = [self.evaluate(gameState, a) for a in actions]
+            self.computationTimes.append(time.time() - start)
 
-        maxValue = max(values)
-        bestActions = [a for a, v in zip(actions, values) if v == maxValue]
+            maxValue = max(values)
+            bestActions = [a for a, v in zip(actions, values) if v == maxValue]
         return random.choice(bestActions)
-
-    def getSuccessor(self, gameState, action):
-        successor = gameState.generateSuccessor(self.index, action)
-        pos = successor.getAgentState(self.index).getPosition()
-        if pos != nearestPoint(pos):
-            return successor.generateSuccessor(self.index, action)
-        else:
-            return successor
-
-    def evaluate(self, gameState, action):
-        features = self.getFeatures(gameState, action)
-        weights = self.getWeights(gameState, action)
-        return features * weights
-
-    def getFeatures(self, gameState, action):
-        features = util.Counter()
-        successor = self.getSuccessor(gameState, action)
-        ## TODO
-        for feature in [lambda state: 0]:
-            features[feature] = feature(successor)
-        return features
-
-    def getWeights(self, gameState, action):
-        return {'asd': 1.0}
 
 def scoreEvaluation(state, agentIndex):
     return state.getScore(agentIndex)
