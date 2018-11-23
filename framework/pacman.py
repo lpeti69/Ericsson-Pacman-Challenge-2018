@@ -99,16 +99,15 @@ class GameState:
             return GhostRules.getLegalActions( self, agentIndex )
 
     def generateSuccessor( self, agentIndex, action):
-        print agentIndex, self.data.score
         ## TODO: ADD timing
         """
         Returns the successor state after the specified agent takes the action.
         """
         # Check that successors exist
-        if self.isGameOver(): raise Exception('Can\'t generate a successor of a terminal state.')
+        if self.isGameOver(): return self
 
         # Copy current state
-        state = copy.deepcopy(self)
+        state = GameState(self)
         if state.data.tick == state.data.maxTick:
             state.data._isGameOver = True
         else:
@@ -139,6 +138,7 @@ class GameState:
             state.data.score[agentIndex] += state.data.reward[agentIndex]
             GameState.explored.add(self)
             GameState.explored.add(state)
+            #print agentIndex, self.data.score, self.data.reward
         return state
     
     def isPacman(self, agentIndex):
@@ -326,6 +326,7 @@ class EriccsonPacmanRules:
     def newGame( self, layout, pacmanAgents, ghostAgents, display, quiet = False, catchExceptions=False):
         ## TODO: Pacman index 0, enemy pacmans [1,k], ghosts [k+1,n]
         ## TODO: Check if merge agent arrays or not
+        pacmanAgents[0].setisTraining(quiet)
         agents = pacmanAgents[:1] + ghostAgents[:layout.getNumGhosts()] + pacmanAgents[1:layout.getNumEnemyPacmans() + 1]
         initState = GameState()
         ## Sets underlying GameState's gamestatedata from game.py
@@ -340,13 +341,13 @@ class EriccsonPacmanRules:
         """
         Checks to see whether it is time to end the game.
         """
-        if not self.quiet and state.isGameOver(): 
+        if state.isGameOver(): 
+            game.gameOver = True
             print "Game ended, Scores:\n(Agent,Score)"
             i = 0
             for score in state.data.score:
                 print "(%d,%d)" % (i, score)
                 i += 1
-            game.gameOver = True
 
     def getProgress(self, game):
         return float(game.state.getNumFood()) / self.initialState.getNumFood()
@@ -386,7 +387,10 @@ class PacmanRules:
         """
         Returns a list of possible actions.
         """
-        return Actions.getPossibleActions( state.getPacmanState(agentIndex).configuration, state.data.layout.walls, [1,2] )
+        actions = Actions.getPossibleActions( state.getPacmanState(agentIndex).configuration, state.data.layout.walls, [1,2] )
+        if agentIndex > 0:
+            return actions
+        return filter(lambda action: action != Directions.STOP, actions)
     getLegalActions = staticmethod( getLegalActions )
 
     def applyAction( state, action, agentIndex ):
@@ -635,7 +639,7 @@ def readCommand( argv ):
                       metavar = 'TYPE', default='RandomGhost')
     parser.add_option('-e', '--enemy_pacmans', dest='enemyPacmans', ## TODO: Added
                       help=default('the enemy pacman agent TYPE in the pacmanAgents module to use'),
-                      metavar = 'TYPE', default='LeftTurnAgent')
+                      metavar = 'TYPE', default='GreedyAgent')
     parser.add_option('-u', '--num_enemy_pacmans', dest='numEnemyPacmans', ## TODO: Added
                       help=default('The maximum number of enemy pacmans while generation'), 
                       type='int', default=3)
@@ -683,9 +687,9 @@ def readCommand( argv ):
     args['pacmans'] = [pacman]
 
     # Don't display training games
-    if 'numTrain' in agentOpts:
-        options.numQuiet = int(agentOpts['numTrain'])
-        options.numIgnore = int(agentOpts['numTrain'])
+    #if 'numTrain' in agentOpts:
+        #options.numQuiet = int(agentOpts['numTrain'])
+        #options.numIgnore = int(agentOpts['numTrain'])
     
     # Choose a ghost agent
     ghostType = loadAgent(options.ghost, noKeyboard)

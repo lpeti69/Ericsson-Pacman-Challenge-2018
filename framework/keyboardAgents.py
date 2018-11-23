@@ -33,6 +33,9 @@ class KeyboardAgent(Agent):
         self.index = index
         self.keys = []
 
+    def setisTraining(self, attr):
+        pass
+
     def getAction( self, state):
         from graphicsUtils import keys_waiting
         from graphicsUtils import keys_pressed

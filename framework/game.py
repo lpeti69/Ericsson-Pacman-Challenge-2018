@@ -178,11 +178,11 @@ class AgentState:
         state.configuration = self.configuration
         state.ghostMultiplier = self.ghostMultiplier
         state.isDead = self.isDead
-        state.ghostsEaten = self.ghostsEaten
-        state.lastCollisions = self.lastCollisions
+        state.ghostsEaten = self.ghostsEaten[:]
+        state.lastCollisions = self.lastCollisions[:]
         state.hasUsedBoosterBefore = self.hasUsedBoosterBefore
         state.boosterTimer = self.boosterTimer
-        state.scaredTimer = self.scaredTimer
+        state.scaredTimer = self.scaredTimer[:]
         state.respawnTimer = self.respawnTimer
         return state
 
@@ -446,7 +446,7 @@ class GameStateData:
         state.numGhosts = self.numGhosts
         state.tick = self.tick
         state.food = self.food.deepCopy()
-        state.reward = self.reward
+        state.score = self.score[:]
         state.maxTick = self.maxTick
         state.layout = self.layout.deepCopy()
         state._isGameOver = self._isGameOver
@@ -782,7 +782,7 @@ class Game:
             if agentIndex == numAgents - 1: 
                 self.numMoves += 1
                 self.state.data.tick += 1
-                print self.state
+                #print self.state
             # Next agent
             agentIndex = ( agentIndex + 1 ) % numAgents
 

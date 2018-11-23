@@ -27,7 +27,7 @@ class CNST(object):
     FIELD_GHOST_WALL                    = 'G'
     SCORE_FOOD                          = 10
     SCORE_GHOST_EAT                     = 50
-    SCORE_GHOST_DEATH                   = -100
+    SCORE_GHOST_DEATH                   = -500
     SCORE_BOOSTER                       = 50
     GHOST_DEATH_TIME                    = 5
     BOOSTER_DURATION                    = 21
@@ -679,6 +679,7 @@ def BFS(state, starts, isTarget, maxDist = sys.maxsize):
     closest = maxDist + 1
     furthest = -1
     #
+    #print starts, isTarget(state,0,0)
     for pos in starts:
         Q.put((int(pos[0]), int(pos[1])))
         visited[int(pos[0])][int(pos[1])] = True
