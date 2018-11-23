@@ -52,7 +52,7 @@ from game import Configuration
 from util import nearestPoint
 from util import manhattanDistance
 from util import CNST
-import util, layout
+import util, layout, copy
 import sys, types, time, random, os
 
 ###################################################
@@ -99,7 +99,7 @@ class GameState:
             return GhostRules.getLegalActions( self, agentIndex )
 
     def generateSuccessor( self, agentIndex, action):
-
+        print agentIndex, self.data.score
         ## TODO: ADD timing
         """
         Returns the successor state after the specified agent takes the action.
@@ -108,7 +108,7 @@ class GameState:
         if self.isGameOver(): raise Exception('Can\'t generate a successor of a terminal state.')
 
         # Copy current state
-        state = GameState(self)
+        state = copy.deepcopy(self)
         if state.data.tick == state.data.maxTick:
             state.data._isGameOver = True
         else:

@@ -15,6 +15,7 @@
 from pacman import Directions
 from game import Agent
 from util import nearestPoint
+from util import BFS
 import distanceCalculator
 import numpy as np
 import random, time, game, util
@@ -89,25 +90,32 @@ class ReinforcementLearningAgent(Agent):
     def updateWeights(self, state, action, alpha = .25, gamma = .75):
         ## TODO: Need to handle r(it is not provided, since the state reward not updated yet)
         Qsa = self.evaluate(state, action)
-        newState = state.deepCopy().generateSuccessor(self.index, action)
+        newState = self.getSuccessor(state, action)
         r = newState.data.reward[self.index]
         ## -1 provided for epsilon => it will select according to the current strategy
         newAction = self.getPolicyAction(newState)
         maxQsa = self.evaluate(newState, newAction)
         ## TODO: Optimalize: vector function?
-        for featureName, (feature, weight) in self.approximators:
+        for featureName, (feature, weight) in self.approximators.items():
             weight += alpha*(r + gamma*maxQsa - Qsa)*feature(newState)
 
     ## Convert {key: lambda} -> {key: (lambda, initWeight)} ex.: setApproximators(self.positionSelector, 0)
-    def setApproximators(self, approximators, initialWeightValues):
+    def setApproximators(self, approximators, initialWeightValues = 1):
         for key, fun in approximators.items():
             self.approximators[key] = (fun, initialWeightValues)
+        print self.approximators
+
+    def convCurrentFeaturesToApproximators(self):
+        approximators = {}
+        for selector, evalFun in self.positionSelector.items():
+            approximators[selector] = lambda state: self.closest(state, selector)[1]
+        self.setApproximators(approximators)
 
     ## Approximates Q(s,a)
     def evaluate(self, gameState, action):
         successor = self.getSuccessor(gameState, action)
         Qsa = 0
-        for featureName, (feature, wegight) in self.approximators:
+        for featureName, (feature, weight) in self.approximators.items():
             temp = weight * feature(gameState)
             Qsa += temp
             print "Feature: {}, value: {}".format(featureName, temp)
@@ -145,6 +153,8 @@ class MyAgent(ReinforcementLearningAgent):
             'ghosts':   lambda s, x, y: (x,y) in s.getGhostPositions(),
             'enemy':    lambda s, x, y: (x,y) in s.getEnemyPacmanPositions()
         }
+        self.convCurrentFeaturesToApproximators()
+
 
     # usage e.g.: (count, closest, furthest) = closest(state, 'food')
     def closest(self, state, selector):

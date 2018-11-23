@@ -16,6 +16,8 @@ import sys
 import inspect
 import heapq, random
 import cStringIO
+import numpy as np
+from Queue import Queue
 
 class CNST(object):
     FIELD_WALL                          = 'F'
@@ -149,7 +151,7 @@ class Stack:
         "Returns true if the stack is empty"
         return len(self.list) == 0
 
-class Queue:
+class UtilQueue:
     "A container with a first-in-first-out (FIFO) queuing policy."
     def __init__(self):
         self.list = []
@@ -678,16 +680,17 @@ def BFS(state, starts, isTarget, maxDist = sys.maxsize):
     furthest = -1
     #
     for pos in starts:
-        Q.put(pos)
-        visited[pos[0]][pos[1]] = True
+        Q.put((int(pos[0]), int(pos[1])))
+        visited[int(pos[0])][int(pos[1])] = True
     while not Q.empty():
         field = Q.get()
         for direction in [(0,1), (1,0), (-1,0), (0,-1)]:
             # Map clip
-            y, x = field[0]+direction[0], field[1]+direction[1]
+            x, y = field[0]+direction[0], field[1]+direction[1]
+            #print x,y
             if y < 0: y += width
             elif y >= width: y -= width
-            if x < 0: y += height
+            if x < 0: x += height
             elif x >= height: x -= height
             # Wall check and visit
             if state.data.layout.walls[x][y] == 0 and not visited[x][y]:
