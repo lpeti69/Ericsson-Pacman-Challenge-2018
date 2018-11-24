@@ -99,7 +99,6 @@ class GameState:
             return GhostRules.getLegalActions( self, agentIndex )
 
     def generateSuccessor( self, agentIndex, action):
-        ## TODO: ADD timing
         """
         Returns the successor state after the specified agent takes the action.
         """
@@ -122,7 +121,7 @@ class GameState:
             if self.isPacman(agentIndex):
                 if not self.getPacmanState(agentIndex).isDead:
                     divider = (self.getPacmanState(agentIndex).boosterTimer > 0) + 1
-                    state.data.reward[agentIndex] += -TIME_PENALTY/float(divider) # Penalty for waiting around
+                    #state.data.reward[agentIndex] += -TIME_PENALTY/float(divider) # Penalty for waiting around
             else:
                 GhostRules.decrementTimer( state.data.agentStates[agentIndex] )
 
@@ -311,9 +310,9 @@ class GameState:
 # You shouldn't need to look through the code in this section of the file. #
 ############################################################################
 
-SCARED_TIME = CNST.BOOSTER_DURATION    # Moves ghosts are scared
-COLLISION_TOLERANCE = 0.7 # How close ghosts must be to Pacman to kill TODO
-TIME_PENALTY = 1 # Number of points lost each round TODO
+SCARED_TIME = CNST.BOOSTER_DURATION
+COLLISION_TOLERANCE = 0.7
+TIME_PENALTY = 1
 
 class EriccsonPacmanRules:
     """
@@ -323,10 +322,8 @@ class EriccsonPacmanRules:
     def __init__(self, timeout=30):
         self.timeout = timeout
 
-    def newGame( self, layout, pacmanAgents, ghostAgents, display, quiet = False, catchExceptions=False):
-        ## TODO: Pacman index 0, enemy pacmans [1,k], ghosts [k+1,n]
-        ## TODO: Check if merge agent arrays or not
-        pacmanAgents[0].setisTraining(quiet)
+    def newGame( self, layout, pacmanAgents, ghostAgents, display, isTraining = True, catchExceptions=False):
+        pacmanAgents[0].setisTraining(isTraining)
         agents = pacmanAgents[:1] + ghostAgents[:layout.getNumGhosts()] + pacmanAgents[1:layout.getNumEnemyPacmans() + 1]
         initState = GameState()
         ## Sets underlying GameState's gamestatedata from game.py
@@ -334,7 +331,6 @@ class EriccsonPacmanRules:
         game = Game(agents, display, self, catchExceptions=catchExceptions)
         game.state = initState
         self.initialState = initState.deepCopy()
-        self.quiet = quiet
         return game
 
     def process(self, state, game):
@@ -343,11 +339,7 @@ class EriccsonPacmanRules:
         """
         if state.isGameOver(): 
             game.gameOver = True
-            print "Game ended, Scores:\n(Agent,Score)"
-            i = 0
-            for score in state.data.score:
-                print "(%d,%d)" % (i, score)
-                i += 1
+            print state.data.score
 
     def getProgress(self, game):
         return float(game.state.getNumFood()) / self.initialState.getNumFood()
@@ -427,7 +419,7 @@ class PacmanRules:
         x,y = position
         # Eat food
         if state.data.food[x][y] or position == state.data._foodEaten:
-            state.data.reward[agentIndex] += CNST.SCORE_FOOD  ## TODO: Change for quest
+            state.data.reward[agentIndex] += CNST.SCORE_FOOD
             state.data.food = state.data.food.copy()
             state.data.food[x][y] = False
             state.data._foodEaten = position
@@ -438,15 +430,15 @@ class PacmanRules:
         # Eat capsule
         if( position in state.getCapsules() or position == state.data._capsuleEaten):
             state.data.capsules.remove( position )
-            state.data._capsuleEaten = position ## TODO: Add score
+            state.data._capsuleEaten = position
             divider = (state.data.tick / state.data.maxTick <= 1/3) + 1
             state.data.reward[agentIndex] += CNST.SCORE_BOOSTER / divider
             agentState = state.data.agentStates[agentIndex]
             agentState.boosterTimer = 2*CNST.BOOSTER_DURATION
             agentState.hasUsedBoosterBefore = True
             # Reset all ghosts' scared timers
-            for index in range( 1, state.data.numGhosts + 1 ): ## TODO: only ghosts
-                state.data.agentStates[index].scaredTimer[agentIndex] = SCARED_TIME ## TODO: change?
+            for index in range( 1, state.data.numGhosts + 1 ):
+                state.data.agentStates[index].scaredTimer[agentIndex] = SCARED_TIME
     consume = staticmethod( consume )
 
     def checkCollision( state, agentIndex ):
@@ -466,22 +458,22 @@ class PacmanRules:
             pacmanState.lastCollisions[maxIndex] = 0
             state.data.agentStates[maxIndex].lastCollisions[agentIndex] = 0
             score1, score2 = state.data.score[agentIndex], state.data.score[maxIndex]
-            print score1,score2
+            #print score1,score2
             if state.data.score[agentIndex] > state.data.score[maxIndex]:
                 state.data.score[agentIndex] -= maxDiff/4
                 state.data.score[maxIndex] += maxDiff/4
             else:
                 state.data.score[agentIndex] += maxDiff/4
                 state.data.score[maxIndex] -= maxDiff/4
-            print state.data.score[agentIndex], state.data.score[maxIndex]
+            #print state.data.score[agentIndex], state.data.score[maxIndex]
     checkCollision = staticmethod( checkCollision )
 
-class GhostRules: ## TODO: Calculate for general pacmans
+class GhostRules:
     """
     These functions dictate how ghosts interact with their environment.
     """
     GHOST_SPEED=1.0
-    def getLegalActions( state, ghostIndex ): ## TODO
+    def getLegalActions( state, ghostIndex ):
         """
         Ghosts cannot stop, and cannot turn around unless they
         reach a dead end, but can turn 90 degrees at intersections.
@@ -537,7 +529,7 @@ class GhostRules: ## TODO: Calculate for general pacmans
         if ghostState.scaredTimer[pacmanIndex] > 0:
             multiplier = pacmanState.ghostMultiplier
             questBonus = GhostRules.getQuestAllGhostEatenBonus(state, pacmanState)
-            print questBonus
+            #print questBonus
             state.data.reward[pacmanIndex] += multiplier * CNST.SCORE_GHOST_EAT + questBonus
             pacmanState.ghostMultiplier *= CNST.BOOSTER_GHOST_SCORE_MULTIPLICATOR
             GhostRules.placeGhost(state, 
@@ -571,7 +563,7 @@ class GhostRules: ## TODO: Calculate for general pacmans
         for x in range(layout.width):
             for y in range(layout.height):
                 if layout.walls[x][y] == 2:
-                    dist = (pos[0]-x)**2 + (pos[1]-y)**2 ## TODO: Manhattan or euk?
+                    dist = (pos[0]-x)**2 + (pos[1]-y)**2
                     if dist < minDist:
                         minDist = dist
                         ghostWallPos = (x,y)
@@ -637,12 +629,14 @@ def readCommand( argv ):
     parser.add_option('-g', '--ghosts', dest='ghost',
                       help=default('the ghost agent TYPE in the ghostAgents module to use'),
                       metavar = 'TYPE', default='RandomGhost')
-    parser.add_option('-e', '--enemy_pacmans', dest='enemyPacmans', ## TODO: Added
+    parser.add_option('-e', '--enemy_pacmans', dest='enemyPacmans',
                       help=default('the enemy pacman agent TYPE in the pacmanAgents module to use'),
                       metavar = 'TYPE', default='GreedyAgent')
-    parser.add_option('-u', '--num_enemy_pacmans', dest='numEnemyPacmans', ## TODO: Added
+    parser.add_option('-u', '--num_enemy_pacmans', dest='numEnemyPacmans',
                       help=default('The maximum number of enemy pacmans while generation'), 
                       type='int', default=3)
+    parser.add_option('-w', '--useWeights', action='store_true', dest='useWeights',
+                      help='Uses the previous calculated weights for pacman', default=False)
     parser.add_option('-k', '--numghosts', type='int', dest='numGhosts',
                       help=default('The maximum number of ghosts to use'), default=4)
     parser.add_option('-z', '--zoom', type='float', dest='zoom',
@@ -657,6 +651,8 @@ def readCommand( argv ):
                       help='Comma separated values sent to agent. e.g. "opt1=val1,opt2,opt3=val3"')
     parser.add_option('-x', '--numTraining', dest='numTraining', type='int',
                       help=default('How many episodes are training (suppresses output)'), default=0)
+    parser.add_option('-y', '--numQuiet', dest='numQuiet', type='int',
+                      help=default('How many games should it play silently'), default=0)
     parser.add_option('--frameTime', dest='frameTime', type='float',
                       help=default('Time to delay between frames; <0 means keyboard'), default=0.1)
     parser.add_option('-c', '--catchExceptions', action='store_true', dest='catchExceptions',
@@ -683,7 +679,13 @@ def readCommand( argv ):
     if options.numTraining > 0:
         args['numTraining'] = options.numTraining
         if 'numTraining' not in agentOpts: agentOpts['numTraining'] = options.numTraining
-    pacman = pacmanType() # Instantiate Pacman with agentArgs ## TODO: Pacman always with 0 index
+
+    weights = []
+    if options.useWeights:
+        with open('weights.txt', 'r') as file:
+            for line in file.readlines():
+                weights.append(float(line.strip('\n')))
+    pacman = pacmanType(0, weights)
     args['pacmans'] = [pacman]
 
     # Don't display training games
@@ -700,10 +702,6 @@ def readCommand( argv ):
 
     args['pacmans'] += [enemyPacmanType(i + options.numGhosts + 1) for i in range(options.numEnemyPacmans)]
 
-
-
-
-
     # Choose a display format
     if options.quietGraphics:
         import textDisplay
@@ -719,6 +717,7 @@ def readCommand( argv ):
     args['record'] = options.record
     args['catchExceptions'] = options.catchExceptions
     args['timeout'] = options.timeout
+    args['numQuiet'] = options.numQuiet
 
     # Special case: recorded games don't use the runGames method or args structure
     if options.gameToReplay != None:
@@ -774,7 +773,7 @@ def replayGame( layout, actions, display ):
 
     display.finish()
 
-def runGames( layout, pacmans, ghosts, display, numGames, record, numTraining = 0, catchExceptions=False, timeout=30 ):
+def runGames( layout, pacmans, ghosts, display, numGames, record, numQuiet = 0, numTraining = 1, catchExceptions=False, timeout=30 ):
     import __main__
     __main__.__dict__['_display'] = display
 
@@ -782,7 +781,8 @@ def runGames( layout, pacmans, ghosts, display, numGames, record, numTraining = 
     games = []
 
     for i in range( numGames ):
-        beQuiet = i < numTraining
+        beQuiet    = i < numQuiet
+        isTraining = i < numTraining
         if beQuiet:
                 # Suppress output and graphics
             import textDisplay
@@ -791,8 +791,7 @@ def runGames( layout, pacmans, ghosts, display, numGames, record, numTraining = 
         else:
             gameDisplay = display
             rules.quiet = False
-        game = rules.newGame( layout, pacmans, ghosts, gameDisplay, beQuiet, catchExceptions) ## TODO
-        print game.state
+        game = rules.newGame( layout, pacmans, ghosts, gameDisplay, isTraining, catchExceptions)
         game.run()
         if not beQuiet: games.append(game)
 

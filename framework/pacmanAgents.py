@@ -68,9 +68,9 @@ class ReinforcementLearningAgent(Agent):
         self.display = None
 
     def __str__(self):
-        return "AgentState: {}\nApproximators: {}\nComputationTimes: {}".format(
+        return "AgentState: {}\Weights: {}\nComputationTimes: {}".format(
             self.observationHistory[-1].data.agentStates[self.index],
-            self.approximators,
+            self.weights,
             self.computationTimes
         )
 
@@ -82,20 +82,18 @@ class ReinforcementLearningAgent(Agent):
 
     def registerInitialState(self, gameState):
         self.observationHistory = []
+        print self.isTraining
 
         import __main__
         if '_display' in dir(__main__):
             self.display = __main__._display
 
     def final(self, gameState, fileName = 'weights.txt'):
-        ## TODO: Add result handling
-        ## ide kell irni valamit...
-        #print self
         print "Avg time for evaulate: {}".format(sum(self.computationTimes) / float(len(self.computationTimes)))
-        print gameState.data.score[0]
+        print self.weights
         with open(fileName, 'w') as file:
             for weight in self.weights:
-                file.write(str(weight))
+                file.write(str(weight) + '\n')
 
     def updateWeights(self, state, action, alpha = .1, gamma = .5):
         ## TODO: Need to handle r(it is not provided, since the state reward not updated yet)
@@ -108,25 +106,14 @@ class ReinforcementLearningAgent(Agent):
         ## TODO: Optimalize: vector function?
         for i in range(len(self.features)):
             self.weights[i] += alpha*(r + gamma*maxQsa - Qsa)*self.features[i](newState)
-            #print alpha, r, gamma, maxQsa, Qsa, feature(newState)[1]
-            #print approx[1]
-
-    ## Convert {key: lambda} -> {key: (lambda, initWeight)} ex.: setApproximators(self.positionSelector, 0)
-    def setApproximators(self, initialWeightValues = 1):
-        for selector, evalFun in self.positionSelector.items():
-            def feature(state):
-                return self.closest(state, evalFun)
-            self.approximators.append([feature, initialWeightValues])
-        print self.approximators
+            #print r, maxQsa, Qsa, self.features[i](newState)
 
     ## Approximates Q(s,a)
     def evaluate(self, gameState, action):
         successor = self.getSuccessor(gameState, action)
         Qsa = 0
         for feature, weight in zip(self.features, self.weights):
-            temp = weight * feature(successor)
-            Qsa += temp
-            #print "Feature: {}, value: {}, weight: {}".format(0, feat, weight)
+            Qsa += weight * feature(successor)
         return Qsa
 
     def getSuccessor(self, gameState, action):
@@ -157,23 +144,19 @@ class ReinforcementLearningAgent(Agent):
         util.raiseNotDefined()
 
 class MyAgent(ReinforcementLearningAgent):
-    def __init__(self, index = 0):
+    def __init__(self, index = 0, weights = []):
         ReinforcementLearningAgent.__init__(self, index)
-        self.weights = []
         self.features = [
             lambda state: self.closest(state, lambda s, x, y: s.hasFood(x,y))[1],
-            self.isEnemyGhostXStepsAway(1),
-            self.isEnemyGhostXStepsAway(2)
+            self.isEnemyGhostXStepsAway(2),
+            self.isEnemyGhostXStepsAway(3),
         ]
-        for i in range(len(self.features)):
-            self.weights.append(1.0)
-        self.positionSelector = {
-            'food':     lambda s, x, y: 'food',
-            'caps':     lambda s, x, y: 'caps',
-            'ghosts':   lambda s, x, y: 'ghosts',
-            'enemy':    lambda s, x, y: 'enemy'
-        }
-        self.setApproximators(initialWeightValues=1)
+        if len(weights) == 0:
+            self.weights = []
+            for i in range(len(self.features)):
+                self.weights.append(1.0)
+        else:
+            self.weights = weights
 
     def isEnemyGhostXStepsAway(self, numStepsAway):
         return lambda state: self.closest(state, lambda s, x, y: (x,y) in s.getGhostPositions())[1] <= numStepsAway
