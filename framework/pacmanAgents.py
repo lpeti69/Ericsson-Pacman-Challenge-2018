@@ -66,6 +66,7 @@ class ReinforcementLearningAgent(Agent):
         self.approximators = []
         self.isTraining = True
         self.display = None
+        self.numthGame = 0
 
     def __str__(self):
         return "AgentState: {}\Weights: {}\nComputationTimes: {}".format(
@@ -82,7 +83,7 @@ class ReinforcementLearningAgent(Agent):
 
     def registerInitialState(self, gameState):
         self.observationHistory = []
-        print self.isTraining
+        self.numthGame += 1
 
         import __main__
         if '_display' in dir(__main__):
@@ -106,7 +107,7 @@ class ReinforcementLearningAgent(Agent):
         ## TODO: Optimalize: vector function?
         for i in range(len(self.features)):
             self.weights[i] += alpha*(r + gamma*maxQsa - Qsa)*self.features[i](newState)
-            #print r, maxQsa, Qsa, self.features[i](newState)
+            print r, maxQsa, Qsa, self.features[i](newState)
 
     ## Approximates Q(s,a)
     def evaluate(self, gameState, action):
@@ -122,22 +123,23 @@ class ReinforcementLearningAgent(Agent):
         ## DEBUG
         lastPos = gameState.getMyPacmanPosition()
         currPos = successor.getMyPacmanPosition()
-        #print "reward: {}, ({},{}) -> ({},{})".format(successor.data.reward[self.index], lastPos[0], lastPos[1], currPos[0], currPos[1])
+        print "reward: {}, ({},{}) -> ({},{})".format(successor.data.reward[self.index], lastPos[0], lastPos[1], currPos[0], currPos[1])
         ## END DEBUG
         if pos != nearestPoint(pos):
             return successor.deepCopy().generateSuccessor(self.index, action)
         else:
             return successor
 
-    def getAction(self, gameState, decay = .99):
+    def getAction(self, gameState, epsilonDecay = .99, alphaDecay = .9):
         self.observationHistory.append(gameState)
         myPos = gameState.getMyPacmanPosition()
         if myPos != nearestPoint(myPos):
             return gameState.getLegalActions(self.index)[0]
         
-        epsilon = np.power(decay, gameState.data.tick)
-        action = self.chooseAction(gameState, epsilon)
-        self.updateWeights(gameState, action)
+        epsilon = np.power(epsilonDecay, gameState.data.tick)
+        alpha   = np.power(alphaDecay, self.numthGame)
+        action  = self.chooseAction(gameState, epsilon)
+        self.updateWeights(gameState, action, alpha)
         return action
 
     def chooseAction(self, gameState, epsilon):
@@ -181,7 +183,6 @@ class MyAgent(ReinforcementLearningAgent):
             start = time.time()
             values = [self.evaluate(gameState, a) for a in actions]
             self.computationTimes.append(time.time() - start)
-
             if len(values) == 0:
                 return Directions.STOP
             maxValue = max(values)
