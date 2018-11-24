@@ -12,6 +12,7 @@ primary
 * Write the ericcson specific implementation of this program with the calculated weights
 * Define metrics for evaluating the results of one or several runs(results) for a given agent's logic
 * Add features (to be discussed)
+* Set alpha, epsilon decay
 
 secondary
 -
