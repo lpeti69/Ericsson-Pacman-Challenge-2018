@@ -409,6 +409,7 @@ class Game:
         P.y, P.x = npos
         if nfld == '.': P.points += 10
         elif nfld == 'o': P.points += 50
+<<<<<<< HEAD
 
     def getDir(self, d):
         if d == (0,1):
@@ -420,6 +421,14 @@ class Game:
         if d == (-1,0):
             return '^'
         return "ERROR DIR"
+=======
+    
+    def out(self, a1, a2=''):
+        a1 = self.getDir(a1)
+        a2 = self.getDir(a2) if a2!='' else ''
+        sys.stdout.write("%s %s %s %s\n" % (G.id, G.tick, G.getOwn().id, a1+a2))
+        sys.stderr.write("%s %s %s %s\n" % (G.id, G.tick, G.getOwn().id, a1+a2))
+>>>>>>> 41dea65fe008d85a6681636479134e171469abd2
         
     
     def _readline(self):
@@ -470,10 +479,11 @@ class Game:
 
 G = Game()
 while G.read():
-    sys.stderr.write("%s" % G.M)
-    sys.stderr.write("%d, %d" % (G.M.width, G.M.height))
-    sys.stderr.write("%s" % G.getClosests((17,13)))
+    sys.stderr.write("%s\n" % G.M)
+    sys.stderr.write("%d, %d\n" % (G.M.width, G.M.height))
+    sys.stderr.write("%s\n" % G.getClosests((17,13)))
     
+<<<<<<< HEAD
     actions = ''
     action = G.agent.getPolicy(G)
     actions += G.getDir(action)
@@ -482,5 +492,16 @@ while G.read():
         action = G.agent.getPolicy(G)
         actions += G.getDir(action)
     sys.stdout.write("") ## TODO
+=======
+    a1 = G.agent.getPolicy(G)
+    #sys.stdout.write("%s" % G.getDir(action))
+    #sys.stderr.write("%s" % G.M)
+    if G.getOwn().getBoosterRemain() > 0:
+        G.update(a1) ## TODO
+        a2 = G.agent.getPolicy(G)
+        G.out(a1, a2)
+    else:
+        G.out(a1)
+>>>>>>> 41dea65fe008d85a6681636479134e171469abd2
     #  c o d e   g o e s   h e r e
     
