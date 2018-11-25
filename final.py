@@ -14,7 +14,8 @@ class Agent():
         self.weights['bias'] = 128.04474477499346
         self.weights['capsules'] = 58.80749768461728
         self.weights['#-of-ghosts-1-step-away'] = -187.79788419328298
-        self.weights['#-of-ghosts-2-step-away'] = -187.79788419328298
+        self.weights['#-of-ghosts-2-step-away'] = -137.79788419328298
+        self.weights['#-of-ghosts-4-step-away'] = -77.79788419328298
 
     def Qsa(self, state, action):
         Qsa = 0.0
@@ -36,7 +37,7 @@ class Agent():
             for a in state.getLegalActions():
                 posibs = state.getPossibilities(state.getOwn().getPos(),a)
                 if posibs < 8:
-                    if 2*posibs < threshold:
+                    if 2*posibs+2 < threshold:
                         actions.append(a)
                 else:
                     actions.append(a)
@@ -83,9 +84,11 @@ class FeatureExtractor:
             (next_y, next_x) in state.getLegalNeighbors(g) for g in ghostPositions)
         features["#-of-ghosts-2-step-away"] = len(
             [g for g in state.getGhostsDistance((next_y, next_x)) if g[1]<=2])
+        features["#-of-ghosts-4-step-away"] = len(
+            [g for g in state.getGhostsDistance((next_y, next_x)) if g[1]<=4])
 
         #sys.stderr.write("food_index: %d %d\n" % (next_y, next_x))
-        if not features["#-of-ghosts-1-step-away"] and not features["#-of-ghosts-2-step-away"] and food[next_y][next_x]:
+        if not features["#-of-ghosts-1-step-away"] and not features["#-of-ghosts-2-step-away"] and not features["#-of-ghosts-4-step-away"] and food[next_y][next_x]:
             features["eats-food"] = 1.0
 
         closestFood = state.getClosests((next_y, next_x))[0] ## food
@@ -104,13 +107,14 @@ class FeatureExtractor:
             if distanceToClosestScaredGhost <= 8 and distanceToClosestActiveGhost >= 2:
                 features["#-of-ghosts-1-step-away"] = 0
                 features["#-of-ghosts-2-step-away"] = 0
+                features["#-of-ghosts-4-step-away"] = 0
                 features["eats-food"] = 0.0
 
-        sys.stderr.write("active: %d, scared: %d, closestF: %d\n" % (distanceToClosestActiveGhost, distanceToClosestScaredGhost, closestFood[0][1]))
-        for ghost in activeGhost:
-            sys.stderr.write("active: (%d, %d)" % (ghost.getPos()[0], ghost.getPos()[1]))
-        for ghost in scaredGhost:
-            sys.stderr.write("scared: (%d, %d)" % (ghost.getPos()[0], ghost.getPos()[1]))
+        #sys.stderr.write("active: %d, scared: %d, closestF: %d\n" % (distanceToClosestActiveGhost, distanceToClosestScaredGhost, closestFood[0][1]))
+        #for ghost in activeGhost:
+        #    sys.stderr.write("active: (%d, %d)" % (ghost.getPos()[0], ghost.getPos()[1]))
+        #for ghost in scaredGhost:
+        #    sys.stderr.write("scared: (%d, %d)" % (ghost.getPos()[0], ghost.getPos()[1]))
         features.divideAll(10.0)
         return features
 
@@ -471,10 +475,10 @@ class Game:
         npos = (ny, nx) = self.clip(self.M, start[0]+d[0], start[1]+d[1])
         posibs = self._BFS(M=self.M,
                            starts=[npos],
-                           isWall=lambda m,y,x: m[y][x]=='%' or (y,x)==start,
+                           isWall=lambda m,y,x: m[y][x]in'#%' or (y,x)==start,
                            isTarget=[lambda m,y,x: m[y][x] in [' ', '.', 'o']],
                            firstOnly=False)[0]
-        sys.stderr.write("%d %d %d %d %d\n" % (start[0],start[1],d[0],d[1],len(posibs)) )
+        #sys.stderr.write("%d %d %d %d %d\n" % (start[0],start[1],d[0],d[1],len(posibs)) )
         return len(posibs)
 
     
@@ -484,7 +488,7 @@ class Game:
     def _BFS(self,
              M=Map(),
              starts=[],
-             isWall=lambda m,y,x:m[y][x]=='%',
+             isWall=lambda m,y,x:m[y][x]in'#%',
              isTarget=[],
              firstOnly=True,
              maxDistance=sys.maxsize):
