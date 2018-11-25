@@ -9,6 +9,11 @@ class Agent():
     def __init__(self):
         self.featureExtractor = FeatureExtractor()
         self.weights = Counter()
+        self.weights['eats-food'] = 215.1656253667629
+        self.weights['closest-food'] = -1.1901203570404904
+        self.weights['bias'] = 113.4627147751201
+        self.weights['capsules'] = 12.8180044889
+        self.weights['#-of-ghosts-1-step-away'] = -250.5676392640621
 
     def Qsa(self, state, action):
         Qsa = 0.0
@@ -64,7 +69,7 @@ class FeatureExtractor:
 
 		closestFood = state.getClosests((next_y, next_x))[0] ## food
 		if closestFood != []:
-			features["closest-food"] = float(closestFood[1]) / \
+			features["closest-food"] = float(closestFood[0][1]) / \
 				(state.M.width * state.M.height)
 		if scaredGhost:
 			distanceToClosestScaredGhost = min(
