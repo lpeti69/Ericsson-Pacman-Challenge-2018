@@ -332,6 +332,14 @@ class Game:
     def getOwn(self):
         return self.P[self._ownIndex]
 
+    def clip(self, M, y, x):
+        if y < 0: y += M.height
+        elif y >= M.height: y -= M.height
+        if x < 0: x += M.width
+        elif x >= M.width: x -= M.width
+        return (y, x)
+        
+    
     def getLegalActions(self):
         actions = []
         pos = self.getOwn().getPos()
@@ -344,7 +352,7 @@ class Game:
     def getLegalNeighbors(self, pos):
         neighbors = []
         for (dy,dx) in [(0,-1), (0,1), (-1,0), (1,0)]:
-            y,x = pos[0]+dy,pos[1]+dx
+            y,x = self.clip(self.M, pos[0]+dy, pos[1]+dx)
             if not self.M.getWalls()[y][x]:
                 neighbors.append((y,x))
         return neighbors
@@ -443,13 +451,7 @@ class Game:
             pos  = (y, x) = Q.get()
             dist = distance[pos]
             for (dy,dx) in [(0,-1), (0,1), (-1,0), (1,0)]:
-                (ny, nx) = (y+dy, x+dx)
-                # clip
-                if ny < 0: ny += M.height
-                elif ny >= M.height: ny -= M.height
-                if nx < 0: nx += M.width
-                elif nx >= M.width: nx -= M.width
-                npos = (ny, nx)
+                npos = (ny, nx) = self.clip(self.M, y+dy, x+dx)
                 if isWall(M,ny,nx) or visited[npos]: continue
                 # add
                 visited[npos] = True
