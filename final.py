@@ -9,13 +9,14 @@ class Agent():
     def __init__(self):
         self.featureExtractor = FeatureExtractor()
         self.weights = Counter()
-        self.weights['eats-food'] = 206.9489441331618
-        self.weights['closest-food'] = -7.774420572282746
-        self.weights['bias'] = 128.04474477499346
-        self.weights['capsules'] = 58.80749768461728
-        self.weights['#-of-ghosts-1-step-away'] = -187.79788419328298
-        self.weights['#-of-ghosts-2-step-away'] = -137.79788419328298
-        self.weights['#-of-ghosts-4-step-away'] = -77.79788419328298
+        self.weights['eats-food'] = 2.0811322517599358
+        self.weights['closest-food'] = -37.39613622737373
+        self.weights['bias'] = 0.07892931934493161
+        self.weights['capsules'] = 8.267269807834454
+        self.weights['#-of-ghosts-1-step-away'] = -11.3779938184255
+        self.weights['#-of-ghosts-2-step-away'] = -11.3779938184255
+        self.weights['#-of-ghosts-4-step-away'] = -11.3779938184255
+        self.weights['#-of-ghosts-6-step-away'] = 0
 
     def Qsa(self, state, action):
         Qsa = 0.0
@@ -31,12 +32,12 @@ class Agent():
                                 starts=[state.getOwn().getPos()],
                                 isTarget=[lambda m,y,x: m[y][x]=='G'],
                                 firstOnly=True)[0]
-        if len(threshold) > 0:
+        if state.getOwn().getBoosterRemain()<2 or len(threshold) > 0:
             actions = []
             threshold = threshold[0][1]
             for a in state.getLegalActions():
                 posibs = state.getPossibilities(state.getOwn().getPos(),a)
-                if posibs < 8:
+                if posibs < 10:
                     if 2*posibs+2 < threshold:
                         actions.append(a)
                 else:
@@ -50,28 +51,27 @@ class Agent():
         bestActions = [a for a, v in zip(actions, values) if v == maxValue]
         if len(bestActions) == 0:
             return (0,0)
-        return random.choice(bestActions)
+        #return random.choice(bestActions)
+        return bestActions[0]
 
 class FeatureExtractor:
 
     def getFeatures(self, state, action):
         # extract the grid of food and wall locations and get the ghost locations
+        pos = state.getOwn().getPos()
         food = state.M.getFoods()
         walls = state.M.getWalls()
-        ghostPositions = state.getGhostPositions()
+        ghostPositions = state.getGhostsDistance(pos) # [ ((y,x),d), .. ]
         capsulesLeft = len(state.getCapsPositions())
         scaredGhost = []
         activeGhost = []
         features = Counter()
-        for ghost in state.G:
-            if not ghost.eatable:
-                activeGhost.append(ghost)
+        for gPos, dist in ghostPositions:
+            g = state.getGhostFromPosition(gPos[0], gPos[1])
+            if state.getOwn().getBoosterRemain() > 0 and g.eatable > 0:
+                scaredGhost.append((g,dist))
             else:
-                scaredGhost.append(ghost)
-
-        pos = state.getOwn().getPos()
-        def getManhattanDistances(ghosts):
-            return map(lambda g: abs(pos[0]-g.getPos()[0]) + abs(pos[1]-g.getPos()[1]), ghosts)
+                activeGhost.append((g,dist))
 
         distanceToClosestActiveGhost = distanceToClosestScaredGhost = 0
         features["bias"] = 1.0
@@ -80,34 +80,46 @@ class FeatureExtractor:
         dy, dx = action
         next_y, next_x = state.clip(state.M, y+dy, x+dx)
 
-        features["#-of-ghosts-1-step-away"] = sum(
-            (next_y, next_x) in state.getLegalNeighbors(g) for g in ghostPositions)
+        features["#-of-ghosts-1-step-away"] = len(
+            [g for g in state.getGhostsDistance((next_y, next_x))
+             if g[1]<=1 and state.getGhostFromPosition(*g[0]).eatable==0])
         features["#-of-ghosts-2-step-away"] = len(
-            [g for g in state.getGhostsDistance((next_y, next_x)) if g[1]<=2])
+            [g for g in state.getGhostsDistance((next_y, next_x))
+             if g[1]<=2 and state.getGhostFromPosition(*g[0]).eatable==0])
         features["#-of-ghosts-4-step-away"] = len(
-            [g for g in state.getGhostsDistance((next_y, next_x)) if g[1]<=4])
+            [g for g in state.getGhostsDistance((next_y, next_x))
+             if g[1]<=4 and state.getGhostFromPosition(*g[0]).eatable==0])
+        features["#-of-ghosts-6-step-away"] = len(
+            [g for g in state.getGhostsDistance((next_y, next_x))
+             if g[1]<=6 and state.getGhostFromPosition(*g[0]).eatable==0])
 
         #sys.stderr.write("food_index: %d %d\n" % (next_y, next_x))
-        if not features["#-of-ghosts-1-step-away"] and not features["#-of-ghosts-2-step-away"] and not features["#-of-ghosts-4-step-away"] and food[next_y][next_x]:
+        if not features["#-of-ghosts-1-step-away"] and not features["#-of-ghosts-2-step-away"] and not features["#-of-ghosts-4-step-away"] and not features["#-of-ghosts-6-step-away"] and food[next_y][next_x]:
             features["eats-food"] = 1.0
 
         closestFood = state.getClosests((next_y, next_x))[0] ## food
         if closestFood != []:
-            features["closest-food"] = float(closestFood[0][1]) / \
-                (state.M.width * state.M.height)
+            features["closest-food"] = float(closestFood[0][1]) / (state.M.width * state.M.height)
         if scaredGhost:
-            distanceToClosestScaredGhost = min(
-                getManhattanDistances(scaredGhost))
+            distanceToClosestScaredGhost = min([d for g,d in scaredGhost])
             if activeGhost:
-                distanceToClosestActiveGhost = min(
-                    getManhattanDistances(activeGhost))
+                distanceToClosestActiveGhost = min([d for g,d in activeGhost])
             else:
                 distanceToClosestActiveGhost = 10
             features["capsules"] = capsulesLeft
             if distanceToClosestScaredGhost <= 8 and distanceToClosestActiveGhost >= 2:
-                features["#-of-ghosts-1-step-away"] = 0
-                features["#-of-ghosts-2-step-away"] = 0
-                features["#-of-ghosts-4-step-away"] = 0
+                features["#-of-ghosts-1-step-away"] = -6*len(
+                    [g for g in state.getGhostsDistance((next_y, next_x))
+                     if g[1]<=1 and state.getGhostFromPosition(*g[0]).eatable>1])
+                features["#-of-ghosts-2-step-away"] = -4*len(
+                    [g for g in state.getGhostsDistance((next_y, next_x))
+                     if g[1]<=2 and state.getGhostFromPosition(*g[0]).eatable>2])
+                features["#-of-ghosts-4-step-away"] = -2*len(
+                    [g for g in state.getGhostsDistance((next_y, next_x))
+                     if g[1]<=4 and state.getGhostFromPosition(*g[0]).eatable>3])
+                features["#-of-ghosts-6-step-away"] = -1*len(
+                    [g for g in state.getGhostsDistance((next_y, next_x))
+                     if g[1]<=6 and state.getGhostFromPosition(*g[0]).eatable>4])
                 features["eats-food"] = 0.0
 
         #sys.stderr.write("active: %d, scared: %d, closestF: %d\n" % (distanceToClosestActiveGhost, distanceToClosestScaredGhost, closestFood[0][1]))
@@ -437,28 +449,32 @@ class Game:
                       isTarget=[
                         lambda m,y,x:m[y][x]=='G'
                       ],
+                      isWall=lambda m,y,x:m[y][x]=='%',
                       firstOnly=False)[0]
     
     def update(self, d):
-        pos  = ( y,  x) = self.getOwn().getPos()
-        npos = (ny, nx) = (y+d[0], x+d[1])
-        nfld = self.M[ny][nx]
-        # map
-        self.M[y][x] = ' '
-        self.M[ny][nx] = 'P'
-        self.M._foods[ny][nx] = 0
-        # pacman
-        P = self.getOwn()
-        P.y, P.x = npos
-        if nfld == '.': P.points += 10
-        elif nfld == 'o': P.points += 50
+        try:
+            pos  = ( y,  x) = self.getOwn().getPos()
+            npos = (ny, nx) = (y+d[0], x+d[1])
+            nfld = self.M[ny][nx]
+            # map
+            self.M[y][x] = ' '
+            self.M[ny][nx] = 'P'
+            self.M._foods[ny][nx] = 0
+            # pacman
+            P = self.getOwn()
+            P.y, P.x = npos
+            if nfld == '.': P.points += 10
+            elif nfld == 'o': P.points += 50
+        except:
+            pass
     
     def out(self, a1, a2=''):
         a1 = self.getDir(a1)
         a2 = self.getDir(a2) if a2!='' else ''
         sys.stdout.write("%s %s %s %s\n" % (G.id, G.tick, G.getOwn().id, a1+a2))
-        sys.stderr.write("%s %s %s %s\n" % (G.id, G.tick, G.getOwn().id, a1+a2))
         sys.stderr.write("Pos: (%d, %d)\n" %(G.getOwn().getPos()[0], G.getOwn().getPos()[1]))
+        sys.stderr.write("%s %s %s %s\n" % (G.id, G.tick, G.getOwn().id, a1+a2))
 
     def getDir(self, d):
         if d == (0,1):
@@ -476,10 +492,12 @@ class Game:
         posibs = self._BFS(M=self.M,
                            starts=[npos],
                            isWall=lambda m,y,x: m[y][x]in'#%' or (y,x)==start,
-                           isTarget=[lambda m,y,x: m[y][x] in [' ', '.', 'o']],
-                           firstOnly=False)[0]
+                           isTarget=[lambda m,y,x: m[y][x] in [' ', '.', 'o'],
+                                     lambda m,y,x: m[y][x] in ['o']],
+                           firstOnly=False)
         #sys.stderr.write("%d %d %d %d %d\n" % (start[0],start[1],d[0],d[1],len(posibs)) )
-        return len(posibs)
+        if len(posibs[1])>0: return 600
+        else: return len(posibs[0])
 
     
     def _readline(self):
@@ -529,7 +547,7 @@ G = Game()
 while G.read():
     #sys.stderr.write("%s\n" % G.M)
     #sys.stderr.write("%d, %d\n" % (G.M.width, G.M.height))
-    sys.stderr.write("%s\n" % G.getClosests(G.getOwn().getPos()))
+    #sys.stderr.write("%s\n" % G.getClosests(G.getOwn().getPos()))
     
     a1 = G.agent.getPolicy(G)
     #sys.stdout.write("%s" % G.getDir(action))
@@ -537,7 +555,12 @@ while G.read():
     if G.getOwn().getBoosterRemain() > 0:
         G.update(a1) ## TODO
         a2 = G.agent.getPolicy(G)
-        G.out(a1, a2)
+        pos = G.getOwn().getPos()
+        mingdist = min([d for p,d in G.getGhostsDistance( (pos[0]+a1[0],pos[1]+a1[1]) )])
+        if mingdist < 2:
+            G.out(a1, a1)
+        else:
+            G.out(a1, a1)
     else:
         G.out(a1)
     #  c o d e   g o e s   h e r e
