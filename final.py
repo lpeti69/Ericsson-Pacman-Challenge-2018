@@ -14,18 +14,19 @@ class Agent():
         self.weights['bias'] = 128.04474477499346
         self.weights['capsules'] = 58.80749768461728
         self.weights['#-of-ghosts-1-step-away'] = -187.79788419328298
+        self.weights['#-of-ghosts-2-step-away'] = -187.79788419328298
 
     def Qsa(self, state, action):
         Qsa = 0.0
         features = self.featureExtractor.getFeatures(state, action)
-        for key, val in features.items():
-            sys.stderr.write("%s: %f" % (key, val))
+        #for key, val in features.items():
+        #    sys.stderr.write("%s: %f" % (key, val))
         for key in features.keys():
             Qsa += self.weights[key] * features[key]
         return Qsa
 
     def getPolicy(self, state):
-        actions = state.getLegalActions()
+        actions = [a for a in state.getLegalActions() if state.getPossibilities(state.getOwn().getPos(),a)>5]
         values = [self.Qsa(state, a) for a in actions]
         if len(values) == 0:
             return (0,0)
@@ -65,8 +66,11 @@ class FeatureExtractor:
 
         features["#-of-ghosts-1-step-away"] = sum(
             (next_y, next_x) in state.getLegalNeighbors(g) for g in ghostPositions)
+        features["#-of-ghosts-2-step-away"] = len(
+            [g for g in state.getGhostsDistance((next_y, next_x)) if g[1]<=2])
 
-        if not features["#-of-ghosts-1-step-away"] and food[next_y][next_x]:
+        #sys.stderr.write("food_index: %d %d\n" % (next_y, next_x))
+        if not features["#-of-ghosts-1-step-away"] and not features["#-of-ghosts-2-step-away"] and food[next_y][next_x]:
             features["eats-food"] = 1.0
 
         closestFood = state.getClosests((next_y, next_x))[0] ## food
@@ -84,13 +88,14 @@ class FeatureExtractor:
             features["capsules"] = capsulesLeft
             if distanceToClosestScaredGhost <= 8 and distanceToClosestActiveGhost >= 2:
                 features["#-of-ghosts-1-step-away"] = 0
+                features["#-of-ghosts-2-step-away"] = 0
                 features["eats-food"] = 0.0
 
-        sys.stderr.write("active: %d, scared: %d, closestF: %d\n" % (distanceToClosestActiveGhost, distanceToClosestScaredGhost, closestFood[0][1]))
-        for ghost in activeGhost:
-            sys.stderr.write("active: (%d, %d)" % (ghost.getPos()[0], ghost.getPos()[1]))
-        for ghost in scaredGhost:
-            sys.stderr.write("active: (%d, %d)" % (ghost.getPos()[0], ghost.getPos()[1]))
+        #sys.stderr.write("active: %d, scared: %d, closestF: %d\n" % (distanceToClosestActiveGhost, distanceToClosestScaredGhost, closestFood[0][1]))
+        #for ghost in activeGhost:
+        #    sys.stderr.write("active: (%d, %d)" % (ghost.getPos()[0], ghost.getPos()[1]))
+        #for ghost in scaredGhost:
+        #    sys.stderr.write("scared: (%d, %d)" % (ghost.getPos()[0], ghost.getPos()[1]))
         features.divideAll(10.0)
         return features
 
@@ -333,7 +338,7 @@ class Game:
         self._capsPos = [(x,y) for x in range(self.M.height) for y in range(self.M.width) if G.M[x][y] == 'o']
         
         # booster fix
-        if G.pacmanid != -1 and self.getOwn().getBoosterRemain():
+        if G.pacmanid != -1 and self.getOwn().getBoosterRemain() == 0:
             for g in self.G: g.eatable = 0
 
         # successful reading
@@ -422,6 +427,7 @@ class Game:
         # map
         self.M[y][x] = ' '
         self.M[ny][nx] = 'P'
+        self.M._foods[ny][nx] = 0
         # pacman
         P = self.getOwn()
         P.y, P.x = npos
@@ -445,7 +451,17 @@ class Game:
         if d == (-1,0):
             return '^'
         return "ERROR DIR"
-        
+    
+    def getPossibilities(self, start, d):
+        npos = (ny, nx) = self.clip(self.M, start[0]+d[0], start[1]+d[1])
+        posibs = self._BFS(M=self.M,
+                           starts=[npos],
+                           isWall=lambda m,y,x: m[y][x]=='%' or (x,y)==start,
+                           isTarget=[lambda m,y,x: m[y][x] in [' ', '.', 'o']],
+                           firstOnly=False)[0]
+        sys.stderr.write("%d %d %d %d %d\n" % (start[0],start[1],d[0],d[1],len(posibs)) )
+        return len(posibs)
+
     
     def _readline(self):
         return sys.stdin.readline().strip().split(" ")
@@ -465,6 +481,9 @@ class Game:
         for start in starts:
             visited[start] = True
             Q.put(start)
+            # 0th target
+            nt = [[(start,0)] if t(M,start[0],start[1]) else [] for t in isTarget]
+            targets = list(map(operator.add, targets, nt))
         # search
         while not Q.empty():
             pos  = (y, x) = Q.get()
