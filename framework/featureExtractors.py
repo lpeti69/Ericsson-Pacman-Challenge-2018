@@ -84,9 +84,9 @@ class FeatureExtractor:
 			(next_x, next_y) in Actions.getLegalNeighbors(g, walls) for g in ghosts)
 
 		## general query functions
-		minDistArray = util.BFS(M=state.data.layout, 
+		minDistArray = util.BFS(M=state, 
 								starts=[(next_x,next_y)])
-		countArray 	 = util.BFS(M=state.data.layout, 
+		countArray 	 = util.BFS(M=state, 
 								starts=[(next_x, next_y)],
 								isWall=lambda m,X,Y: m.walls[X][Y]=='%' or (X,Y) == (x,y),  
 								maxDistance=10)

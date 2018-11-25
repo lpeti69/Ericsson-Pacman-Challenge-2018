@@ -656,7 +656,30 @@ def clip(layout, x, y):
     elif x >= layout.height: x -= layout.height
     if y < 0: y += layout.width
     elif y >= layout.width: y -= layout.width
-    return (x,y)
+    return (x, y)
+
+def getPacmanFromPosition(state,x,y):
+    for p in state.getPacmanStates():
+        if p.getPosition() == (x,y):
+            return p
+
+def getGhostFromPosition(state,x,y):
+    for g in state.getGhostStates():
+        if g.getPosition() == (x,y):
+            return g
+    
+def getClosests(state, pos):
+    return G._BFS(M=state.data.layout
+                  starts=[pos],
+                  isTarget=[
+                    lambda m,x,y:m[x][y]=='.',
+                    lambda m,x,y:m[x][y]=='o',
+                    lambda m,x,y:m[x][y]=='E',
+                    lambda m,x,y:m[x][y]=='E' and state.data.scores[getPacmanFromPosition(state,x,y).index]>state.data.scores[0],
+                    lambda m,x,y:m[x][y]=='E' and state.data.scores[getPacmanFromPosition(state,x,y).index]<state.data.scores[0],
+                    lambda m,x,y:m[x][y]=='G',
+                    lambda m,x,y:m[x][y]=='G' and getGhostFromPosition(state,x,y).scaredTimer[0]>0,
+                    lambda m,x,y:m[x][y]=='G' and getGhostFromPosition(state,x,y).scaredTimer[0]==0])
 
 def BFS(M=None,
          starts=[],
