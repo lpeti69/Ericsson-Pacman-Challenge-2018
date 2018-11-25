@@ -651,41 +651,48 @@ def unmutePrint():
     sys.stdout = _ORIGINAL_STDOUT
     #sys.stderr = _ORIGINAL_STDERR
 
-def BFS(state, starts, isTarget, maxDist = sys.maxsize):
-    width   = state.data.layout.width
-    height  = state.data.layout.height
-    dist    = np.zeros(shape=(height,width))
-    visited = [[False for _ in range(width)] for _ in range(height)]
-    Q       = Queue()
-    #
-    count = 0
-    closest = maxDist + 1
-    furthest = -1
-    #
-    #print starts, isTarget(state,0,0)
-    for pos in starts:
-        Q.put((int(pos[0]), int(pos[1])))
-        visited[int(pos[0])][int(pos[1])] = True
+def clip(layout, x, y):
+    if x < 0: x += layout.height
+    elif x >= layout.height: x -= layout.height
+    if y < 0: y += layout.width
+    elif y >= layout.width: y -= layout.width
+
+def BFS(M=None,
+         starts=[],
+         isWall=lambda m,x,y:m[x][y]=='%',
+         isTarget=[],
+         firstOnly=True,
+         maxDistance=sys.maxsize):
+    Q      = Queue()
+    height = M.height
+    width  = M.width
+    visited  = np.full((height,width), False)
+    distance = np.full((height,width), 0)
+    targets  = [[]] * len(isTarget)
+    # init
+    for start in starts:
+        visited[start] = True
+        Q.put(start)
+        # 0th target
+        nt = [[(start,0)] if t(state,start[0],start[1]) else [] for t in isTarget]
+        targets = list(map(operator.add, targets, nt))
+    # search
     while not Q.empty():
-        field = Q.get()
-        for direction in [(0,1), (1,0), (-1,0), (0,-1)]:
-            # Map clip
-            x, y = field[0]+direction[0], field[1]+direction[1]
-            #print x,y
-            if y < 0: y += width
-            elif y >= width: y -= width
-            if x < 0: x += height
-            elif x >= height: x -= height
-            # Wall check and visit
-            if state.data.layout.walls[x][y] == 0 and not visited[x][y]:
-                dist[x][y] = dist[field[0]][field[1]] + 1
-                if dist[x][y] > maxDist:
-                    break
-                visited[x][y] = True
-                Q.put((x,y))
-                if isTarget(state, x, y):
-                    count += 1
-                    closest = min(closest, dist[x][y])
-                    furthest = max(furthest, dist[x][y])
-    
-    return (count, closest, furthest, dist, visited)
+        pos  = (x,y) = Q.get()
+        dist = distance[pos]
+        for (dx,dy) in [(0,-1), (0,1), (-1,0), (1,0)]:
+            npos = (nx, ny) = self.clip(M, x+dx, y+dy)
+            if isWall(M,nx,ny) or visited[npos]: continue
+            # add
+            visited[npos] = True
+            distance[npos] = dist+1
+            Q.put(npos)
+            # targets
+            nt = [[(npos,dist+1)] if t(M,nx,ny) else [] for t in isTarget]
+            targets = list(map(operator.add, targets, nt))
+            if firstOnly and all(targets):
+                Q = queue.Queue()
+                break
+    if firstOnly:
+        targets = [t[:1] for t in targets]
+    return targets
