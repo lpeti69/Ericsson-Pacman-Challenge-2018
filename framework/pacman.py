@@ -323,7 +323,6 @@ class EriccsonPacmanRules:
         self.timeout = timeout
 
     def newGame( self, layout, pacmanAgents, ghostAgents, display, isTraining = True, catchExceptions=False):
-        pacmanAgents[0].setisTraining(isTraining)
         agents = pacmanAgents[:1] + ghostAgents[:layout.getNumGhosts()] + pacmanAgents[1:layout.getNumEnemyPacmans() + 1]
         initState = GameState()
         ## Sets underlying GameState's gamestatedata from game.py
@@ -680,12 +679,14 @@ def readCommand( argv ):
         args['numTraining'] = options.numTraining
         if 'numTraining' not in agentOpts: agentOpts['numTraining'] = options.numTraining
 
-    weights = []
+    weights = util.Counter()
     if options.useWeights:
         with open('weights.txt', 'r') as file:
             for line in file.readlines():
-                weights.append(float(line.strip('\n')))
-    pacman = pacmanType(0, weights)
+                feature, weight = line.strip('\n').split(':')
+                weights[feature] = float(weight)
+    agentOpts['weights'] = weights
+    pacman = pacmanType(**agentOpts)
     args['pacmans'] = [pacman]
 
     # Don't display training games
