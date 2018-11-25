@@ -231,7 +231,7 @@ class Pacman:
         self.x = 0
         self.boost = 0
         self.points = 0
-        self.ppoints = 0
+        self.ppoints = ''
         self.msg = ''
     
     def read(self):
@@ -400,8 +400,21 @@ class Game:
     def update(self, d):
         pos  = ( y,  x) = self.getOwn().getPos()
         npos = (ny, nx) = (y+d[0], x+d[1])
+        nfld = self.M[ny][nx]
+        # map
         self.M[y][x] = ' ';
         self.M[ny][nx] = 'P';
+        # ghosts
+        for g in self.G:
+            if g.eatable > 0: g.eatable -= 1
+            if g.frozen > 0: g.frozen -= 1
+        # pacman
+        for p in self.P:
+            if p.boost > 0: p.boost -= 1
+        P = self.getOwn()
+        P.y, P.x = npos
+        if nfld == '.': P.points += 10
+        elif nfld == 'o': P.points += 50
         
     
     def _readline(self):
