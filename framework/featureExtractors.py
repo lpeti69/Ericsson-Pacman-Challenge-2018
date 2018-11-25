@@ -82,13 +82,14 @@ class FeatureExtractor:
 		# count the number of ghosts 1-step away
 		features["#-of-ghosts-1-step-away"] = sum(
 			(next_x, next_y) in Actions.getLegalNeighbors(g, walls) for g in ghosts)
-		features["#-of-ghosts-2-step-away"] = sum(
-			[(next_x, next_y) in Actions.getLegalNeighbors(neighbor, walls) for neighbor in [Actions.getLegalNeighbors(g, walls) for g in ghosts]]
-		)
 
 		## general query functions
-		minDistArray = util.BFS(state, (x,y), isTarget='minDist')
-		countArray 	 = util.BFS(state, (x,y), isTarget='count', radius=10)
+		minDistArray = util.BFS(M=state.data.layout, 
+								starts=[(next_x,next_y)])
+		countArray 	 = util.BFS(M=state.data.layout, 
+								starts=[(next_x, next_y)],
+								isWall=lambda m,X,Y: m.walls[X][Y]=='%' or (X,Y) == (x,y),  
+								maxDistance=10)
 		minDists = [feature[0][1] for feature in minDistArray]
 		counts   = [feature[0][1] for feature in countArray]
 
@@ -119,26 +120,26 @@ class FeatureExtractor:
 		features["num-active-ghosts"] = counts[7]
 
 		## special query functions
-		cg1 = util.BFS(state, (x,y), [
-			lambda s,x,y: 'isScared',
-			lambda s,x,y: 'isActive'
-			], radius=1
-		)
+		#cg1 = util.BFS(state, (x,y), [
+		#	lambda s,x,y: 'isScared',
+		#	lambda s,x,y: 'isActive'
+		#	], radius=1
+		#)
 
-		cg2 = util.BFS(state, (x,y), [
-			lambda s,x,y: 'isScared',
-			lambda s,x,y: 'isActive'
-			], radius=2
-		)
+		#cg2 = util.BFS(state, (x,y), [
+		#	lambda s,x,y: 'isScared',
+		#	lambda s,x,y: 'isActive'
+		#	], radius=2
+		#)
 
-		cg5 = util.BFS(state, (x,y), [
-			lambda s,x,y: 'isScared',
-			lambda s,x,y: 'isActive'
-			], radius=1
-		)
+		#cg5 = util.BFS(state, (x,y), [
+		#	lambda s,x,y: 'isScared',
+		#	lambda s,x,y: 'isActive'
+		#	], radius=1
+		#)
 
 		## special features
-		features["#-of-ghosts-0-step-away"] = cg1[6] + cg1[7] ## TODO
+		#features["#-of-ghosts-0-step-away"] = cg1[6] + cg1[7] ## TODO
 		## etc
 
 		if features['num-food'] > 2*features['closest-active-ghost'] and food[next_x][next_y]:

@@ -14,7 +14,7 @@
 
 import sys
 import inspect
-import heapq, random
+import heapq, random, operator
 import cStringIO
 import numpy as np
 from Queue import Queue
@@ -656,10 +656,11 @@ def clip(layout, x, y):
     elif x >= layout.height: x -= layout.height
     if y < 0: y += layout.width
     elif y >= layout.width: y -= layout.width
+    return (x,y)
 
 def BFS(M=None,
          starts=[],
-         isWall=lambda m,x,y:m[x][y]=='%',
+         isWall=lambda m,x,y:m.walls[x][y]=='%',
          isTarget=[],
          firstOnly=True,
          maxDistance=sys.maxsize):
@@ -681,7 +682,7 @@ def BFS(M=None,
         pos  = (x,y) = Q.get()
         dist = distance[pos]
         for (dx,dy) in [(0,-1), (0,1), (-1,0), (1,0)]:
-            npos = (nx, ny) = self.clip(M, x+dx, y+dy)
+            npos = (nx, ny) = clip(M, x+dx, y+dy)
             if isWall(M,nx,ny) or visited[npos]: continue
             # add
             visited[npos] = True
@@ -691,7 +692,7 @@ def BFS(M=None,
             nt = [[(npos,dist+1)] if t(M,nx,ny) else [] for t in isTarget]
             targets = list(map(operator.add, targets, nt))
             if firstOnly and all(targets):
-                Q = queue.Queue()
+                Q = Queue()
                 break
     if firstOnly:
         targets = [t[:1] for t in targets]
