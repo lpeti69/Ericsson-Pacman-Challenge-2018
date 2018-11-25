@@ -86,7 +86,11 @@ class FeatureExtractor:
                 features["#-of-ghosts-1-step-away"] = 0
                 features["eats-food"] = 0.0
 
-        sys.stderr.write("active: %d, scared: %d, closestF: %d, activeGhost: %s, scaredG: %s" % (distanceToClosestActiveGhost, distanceToClosestScaredGhost, closestFood[0][1], activeGhost, scaredGhost))
+        sys.stderr.write("active: %d, scared: %d, closestF: %d\n" % (distanceToClosestActiveGhost, distanceToClosestScaredGhost, closestFood[0][1]))
+        for ghost in activeGhost:
+            sys.stderr.write("active: (%d, %d)" % (ghost.getPos()[0], ghost.getPos()[1]))
+        for ghost in scaredGhost:
+            sys.stderr.write("active: (%d, %d)" % (ghost.getPos()[0], ghost.getPos()[1]))
         features.divideAll(10.0)
         return features
 
@@ -390,9 +394,9 @@ class Game:
                       isTarget=[
                         lambda m,y,x:m[y][x]=='.',
                         lambda m,y,x:m[y][x]=='o',
-                        lambda m,y,x:m[y][x]=='P',
-                        lambda m,y,x:m[y][x]=='P' and G.getPacmanFromPosition(y,x).points>G.getOwn().points,
-                        lambda m,y,x:m[y][x]=='P' and G.getPacmanFromPosition(y,x).points<G.getOwn().points,
+                        lambda m,y,x:m[y][x]=='E',
+                        lambda m,y,x:m[y][x]=='E' and G.getPacmanFromPosition(y,x).points>G.getOwn().points,
+                        lambda m,y,x:m[y][x]=='E' and G.getPacmanFromPosition(y,x).points<G.getOwn().points,
                         lambda m,y,x:m[y][x]=='G',
                         lambda m,y,x:m[y][x]=='G' and G.getGhostFromPosition(y,x).eatable>0,
                         lambda m,y,x:m[y][x]=='G' and G.getGhostFromPosition(y,x).eatable==0 and G.getGhostFromPosition(y,x).frozen==0])
@@ -481,9 +485,9 @@ class Game:
 
 G = Game()
 while G.read():
-    sys.stderr.write("%s\n" % G.M)
-    sys.stderr.write("%d, %d\n" % (G.M.height, G.M.width))
-    #sys.stderr.write("%s\n" % G.getClosests((17,13)))
+    #sys.stderr.write("%s\n" % G.M)
+    #sys.stderr.write("%d, %d\n" % (G.M.width, G.M.height))
+    sys.stderr.write("%s\n" % G.getClosests(G.getOwn().getPos()))
     
     a1 = G.agent.getPolicy(G)
     #sys.stdout.write("%s" % G.getDir(action))
