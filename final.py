@@ -404,14 +404,22 @@ class Game:
         # map
         self.M[y][x] = ' '
         self.M[ny][nx] = 'P'
-        # ghosts
-        for g in self.G:
-            if g.frozen > 0: g.frozen -= 1
         # pacman
         P = self.getOwn()
         P.y, P.x = npos
         if nfld == '.': P.points += 10
         elif nfld == 'o': P.points += 50
+
+    def getDir(self, d):
+        if d == (0,1):
+            return '>'
+        if d == (1,0):
+            return 'v'
+        if d == (0,-1):
+            return '<'
+        if d == (-1,0):
+            return '^'
+        return "ERROR DIR"
         
     
     def _readline(self):
@@ -457,19 +465,7 @@ class Game:
                     break
         if firstOnly:
             targets = [t[:1] for t in targets]
-        return targets
-
-    def getDir(self, d):
-        if d == (0,1):
-            return '>'
-        if d == (1,0):
-            return 'v'
-        if d == (0,-1):
-            return '<'
-        if d == (-1,0):
-            return '^'
-        return "ERROR DIR"
-                
+        return targets       
             
 
 G = Game()
@@ -478,12 +474,13 @@ while G.read():
     sys.stderr.write("%d, %d" % (G.M.width, G.M.height))
     sys.stderr.write("%s" % G.getClosests((17,13)))
     
+    actions = ''
     action = G.agent.getPolicy(G)
-    sys.stdout.write("%s" % G.getDir(action))
-    G.update(action) ## TODO
-    sys.stderr.write("%s" % G.M)
+    actions += G.getDir(action)
     if G.getOwn().getBoosterRemain() > 0:
+        G.update(action)
         action = G.agent.getPolicy(G)
-        sys.stdout.write("%s" % G.getDir(action))
+        actions += G.getDir(action)
+    sys.stdout.write("") ## TODO
     #  c o d e   g o e s   h e r e
     
