@@ -175,6 +175,21 @@ class GameState:
     def getMyPacmanPosition(self):
         return self.getPacmanPosition(0)
 
+    def isEnemyPacmanPos(self, pos):
+        return any([
+            agent.getPosition() == pos for agent in self.data.agentStates
+                if agent.isPacman and agent.index != 0
+        ])
+
+    def isGhostPos(self, pos):
+        return any([
+            agent.getPosition() == pos for agent in self.data.agentStates
+                if not agent.isPacman
+        ])
+    
+    def isCapsulePos(self, pos):
+        return any([capsPos == pos for capsPos in self.getCapsules()])
+
     def getPacmanPosition( self, agentIndex ):
         if not self.isPacman(agentIndex):
             raise Exception("Ghost's index passed to getPacmanPosition")

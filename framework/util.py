@@ -14,7 +14,7 @@
 
 import sys
 import inspect
-import heapq, random
+import heapq, random, operator
 import cStringIO
 import numpy as np
 from Queue import Queue
@@ -652,10 +652,10 @@ def unmutePrint():
     #sys.stderr = _ORIGINAL_STDERR
 
 def clip(layout, x, y):
-    if x < 0: x += layout.height
-    elif x >= layout.height: x -= layout.height
     if y < 0: y += layout.width
     elif y >= layout.width: y -= layout.width
+    if x < 0: x += layout.height
+    elif x >= layout.height: x -= layout.height
     return (x, y)
 
 def getPacmanFromPosition(state,x,y):
@@ -669,21 +669,21 @@ def getGhostFromPosition(state,x,y):
             return g
     
 def getClosests(state, pos):
-    return G._BFS(M=state.data.layout,
+    return BFS(M=state.data.layout,
                   starts=[pos],
                   isTarget=[
-                    lambda m,x,y:m[x][y]=='.',
-                    lambda m,x,y:m[x][y]=='o',
-                    lambda m,x,y:m[x][y]=='E',
-                    lambda m,x,y:m[x][y]=='E' and state.data.scores[getPacmanFromPosition(state,x,y).index]>state.data.scores[0],
-                    lambda m,x,y:m[x][y]=='E' and state.data.scores[getPacmanFromPosition(state,x,y).index]<state.data.scores[0],
-                    lambda m,x,y:m[x][y]=='G',
-                    lambda m,x,y:m[x][y]=='G' and getGhostFromPosition(state,x,y).scaredTimer[0]>0,
-                    lambda m,x,y:m[x][y]=='G' and getGhostFromPosition(state,x,y).scaredTimer[0]==0])
+                    lambda x,y: state.data.layout.food[x][y],
+                    lambda x,y: state.isCapsulePos((x,y)),
+                    lambda x,y: state.isEnemyPacmanPos((x,y)),
+                    lambda x,y: state.isEnemyPacmanPos((x,y)) and state.getScore(getPacmanFromPosition(state,x,y).index) > state.data.score[0],
+                    lambda x,y: state.isEnemyPacmanPos((x,y)) and state.getScore(getPacmanFromPosition(state,x,y).index) < state.data.score[0],
+                    lambda x,y: state.isGhostPos((x,y)),
+                    lambda x,y: state.isGhostPos((x,y)) and getGhostFromPosition(state,x,y).scaredTimer[0]>0,
+                    lambda x,y: state.isGhostPos((x,y)) and getGhostFromPosition(state,x,y).scaredTimer[0]==0])
 
 def BFS(M=None,
          starts=[],
-         isWall=lambda m,x,y:m[x][y]=='%',
+         isWall=lambda m,x,y:m.walls[x][y] in (1,2),
          isTarget=[],
          firstOnly=True,
          maxDistance=sys.maxsize):
@@ -698,7 +698,7 @@ def BFS(M=None,
         visited[start] = True
         Q.put(start)
         # 0th target
-        nt = [[(start,0)] if t(state,start[0],start[1]) else [] for t in isTarget]
+        nt = [[(start,0)] if t(start[0],start[1]) else [] for t in isTarget]
         targets = list(map(operator.add, targets, nt))
     # search
     while not Q.empty():
@@ -712,10 +712,10 @@ def BFS(M=None,
             distance[npos] = dist+1
             Q.put(npos)
             # targets
-            nt = [[(npos,dist+1)] if t(M,nx,ny) else [] for t in isTarget]
+            nt = [[(npos,dist+1)] if t(nx,ny) else [] for t in isTarget]
             targets = list(map(operator.add, targets, nt))
             if firstOnly and all(targets):
-                Q = queue.Queue()
+                Q = Queue()
                 break
     if firstOnly:
         targets = [t[:1] for t in targets]
