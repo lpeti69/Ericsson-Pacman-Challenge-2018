@@ -668,20 +668,35 @@ def getGhostFromPosition(state,x,y):
         if g.getPosition() == (x,y):
             return g
     
-def getClosests(state, pos):
+def getClosests(state, pos, isTarget = [
+                    lambda s,x,y: s.data.layout.food[x][y],
+                    lambda s,x,y: s.isCapsulePos((x,y)),
+                    lambda s,x,y: s.isEnemyPacmanPos((x,y)) and s.getScore(getPacmanFromPosition(s,x,y).index) > s.data.score[0],
+                    lambda s,x,y: s.isEnemyPacmanPos((x,y)) and s.getScore(getPacmanFromPosition(s,x,y).index) < s.data.score[0],
+                    lambda s,x,y: s.isGhostPos((x,y)) and getGhostFromPosition(s,x,y).scaredTimer[0]>0,
+                    lambda s,x,y: s.isGhostPos((x,y)) and getGhostFromPosition(s,x,y).scaredTimer[0]==0]):
     return BFS(M=state.data.layout,
                   starts=[pos],
-                  isTarget=[
-                    lambda x,y: state.data.layout.food[x][y],
-                    lambda x,y: state.isCapsulePos((x,y)),
-                    lambda x,y: state.isEnemyPacmanPos((x,y)),
-                    lambda x,y: state.isEnemyPacmanPos((x,y)) and state.getScore(getPacmanFromPosition(state,x,y).index) > state.data.score[0],
-                    lambda x,y: state.isEnemyPacmanPos((x,y)) and state.getScore(getPacmanFromPosition(state,x,y).index) < state.data.score[0],
-                    lambda x,y: state.isGhostPos((x,y)),
-                    lambda x,y: state.isGhostPos((x,y)) and getGhostFromPosition(state,x,y).scaredTimer[0]>0,
-                    lambda x,y: state.isGhostPos((x,y)) and getGhostFromPosition(state,x,y).scaredTimer[0]==0])
+                  isTarget=isTarget,
+                  state=state)
 
-def BFS(M=None,
+def getCount(state, prevPos, pos, r=sys.maxsize, isTarget = [
+                    lambda s,x,y: s.data.layout.food[x][y],
+                    lambda s,x,y: s.isCapsulePos((x,y)),
+                    lambda s,x,y: s.isEnemyPacmanPos((x,y)) and s.getScore(getPacmanFromPosition(s,x,y).index) > s.data.score[0],
+                    lambda s,x,y: s.isEnemyPacmanPos((x,y)) and s.getScore(getPacmanFromPosition(s,x,y).index) < s.data.score[0],
+                    lambda s,x,y: s.isGhostPos((x,y)) and getGhostFromPosition(s,x,y).scaredTimer[0]>0,
+                    lambda s,x,y: s.isGhostPos((x,y)) and getGhostFromPosition(s,x,y).scaredTimer[0]==0]):
+    return list(map(len, BFS(M=state.data.layout,
+                  starts=[pos],
+                  isWall=lambda m,x,y: m.walls[x][y] in (1,2) or (x,y) == prevPos,
+                  firstOnly=False,
+                  maxDistance=r,
+                  isTarget=isTarget,
+                  state=state)))
+
+def BFS(state,
+         M=None,
          starts=[],
          isWall=lambda m,x,y:m.walls[x][y] in (1,2),
          isTarget=[],
@@ -698,7 +713,7 @@ def BFS(M=None,
         visited[start] = True
         Q.put(start)
         # 0th target
-        nt = [[(start,0)] if t(start[0],start[1]) else [] for t in isTarget]
+        nt = [[0] if t(state, start[0],start[1]) else [] for t in isTarget]
         targets = list(map(operator.add, targets, nt))
     # search
     while not Q.empty():
@@ -712,7 +727,7 @@ def BFS(M=None,
             distance[npos] = dist+1
             Q.put(npos)
             # targets
-            nt = [[(npos,dist+1)] if t(nx,ny) else [] for t in isTarget]
+            nt = [[dist+1] if t(state, nx,ny) else [] for t in isTarget]
             targets = list(map(operator.add, targets, nt))
             if firstOnly and all(targets):
                 Q = Queue()
