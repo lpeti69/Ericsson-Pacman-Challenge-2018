@@ -1,5 +1,5 @@
-closest-food:-1.18898823482
-bias:109.761302996
-capsules:12.8180044889
-#-of-ghosts-1-step-away:-250.622527577
-eats-food:213.916391038
+eats-food:205.816872313
+closest-food:-7.76306733982
+bias:120.916014653
+capsules:54.290705917
+#-of-ghosts-1-step-away:-187.821812535

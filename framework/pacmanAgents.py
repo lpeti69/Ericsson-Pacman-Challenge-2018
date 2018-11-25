@@ -176,7 +176,7 @@ class QLearningAgent(ReinforcementLearningAgent):
         legalActions = state.getLegalActions(self.index)
         action = Directions.STOP
         if len(legalActions) > 0:
-            if np.random.uniform(0,1) > self.epsilon and self.isInTraining():
+            if np.random.uniform(0,1) < self.epsilon and self.isInTraining():
                 action = random.choice(legalActions)
             else:
                 action = self.getPolicy(state)

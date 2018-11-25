@@ -402,15 +402,12 @@ class Game:
         npos = (ny, nx) = (y+d[0], x+d[1])
         nfld = self.M[ny][nx]
         # map
-        self.M[y][x] = ' ';
-        self.M[ny][nx] = 'P';
+        self.M[y][x] = ' '
+        self.M[ny][nx] = 'P'
         # ghosts
         for g in self.G:
-            if g.eatable > 0: g.eatable -= 1
             if g.frozen > 0: g.frozen -= 1
         # pacman
-        for p in self.P:
-            if p.boost > 0: p.boost -= 1
         P = self.getOwn()
         P.y, P.x = npos
         if nfld == '.': P.points += 10
