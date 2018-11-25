@@ -344,7 +344,7 @@ class Game:
         actions = []
         pos = self.getOwn().getPos()
         for (dy,dx) in [(0,-1), (0,1), (-1,0), (1,0)]:
-            y,x = pos[0]+dy,pos[1]+dx
+            y, x = self.clip(self.M, pos[0]+dy, pos[1]+dx)
             if not self.M.getWalls()[y][x]:
                 actions.append((dy,dx))
         return actions
@@ -352,7 +352,7 @@ class Game:
     def getLegalNeighbors(self, pos):
         neighbors = []
         for (dy,dx) in [(0,-1), (0,1), (-1,0), (1,0)]:
-            y,x = self.clip(self.M, pos[0]+dy, pos[1]+dx)
+            y, x = self.clip(self.M, pos[0]+dy, pos[1]+dx)
             if not self.M.getWalls()[y][x]:
                 neighbors.append((y,x))
         return neighbors
@@ -480,7 +480,7 @@ G = Game()
 while G.read():
     sys.stderr.write("%s\n" % G.M)
     sys.stderr.write("%d, %d\n" % (G.M.width, G.M.height))
-    sys.stderr.write("%s\n" % G.getClosests((17,13)))
+    #sys.stderr.write("%s\n" % G.getClosests((17,13)))
     
     a1 = G.agent.getPolicy(G)
     #sys.stdout.write("%s" % G.getDir(action))
