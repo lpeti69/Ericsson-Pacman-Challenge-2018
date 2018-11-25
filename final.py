@@ -18,6 +18,8 @@ class Agent():
     def Qsa(self, state, action):
         Qsa = 0.0
         features = self.featureExtractor.getFeatures(state, action)
+        for key, val in features.items():
+            sys.stderr.write("%s: %f" % (key, val))
         for key in features.keys():
             Qsa += self.weights[key] * features[key]
         return Qsa
@@ -35,57 +37,58 @@ class Agent():
 
 class FeatureExtractor:
 
-	def getFeatures(self, state, action):
-		# extract the grid of food and wall locations and get the ghost locations
-		food = state.M.getFoods()
-		walls = state.M.getWalls()
-		ghosts = state.getGhostPositions()
-		capsulesLeft = len(state.getCapsPositions())
-		scaredGhost = []
-		activeGhost = []
-		features = Counter()
-		for ghost in state.G:
-			if not ghost.eatable:
-				activeGhost.append(ghost)
-			else:
-				scaredGhost.append(ghost)
+    def getFeatures(self, state, action):
+        # extract the grid of food and wall locations and get the ghost locations
+        food = state.M.getFoods()
+        walls = state.M.getWalls()
+        ghostPositions = state.getGhostPositions()
+        capsulesLeft = len(state.getCapsPositions())
+        scaredGhost = []
+        activeGhost = []
+        features = Counter()
+        for ghost in state.G:
+            if not ghost.eatable:
+                activeGhost.append(ghost)
+            else:
+                scaredGhost.append(ghost)
 
-		pos = state.getOwn().getPos()
-		def getManhattanDistances(ghosts):
-			return map(lambda g: abs(pos[0]-g[0]) + abs(pos[1]-g[1]), ghosts)
+        pos = state.getOwn().getPos()
+        def getManhattanDistances(ghosts):
+            return map(lambda g: abs(pos[0]-g.getPos()[0]) + abs(pos[1]-g.getPos()[1]), ghosts)
 
-		distanceToClosestActiveGhost = distanceToClosestScaredGhost = 0
-		features["bias"] = 1.0
+        distanceToClosestActiveGhost = distanceToClosestScaredGhost = 0
+        features["bias"] = 1.0
 
-		x, y = pos
-		dy, dx = action
-		next_y, next_x = int(y + dy), int(x + dx)
+        y,x = pos
+        dy, dx = action
+        next_y, next_x = int(y + dy), int(x + dx)
 
-		features["#-of-ghosts-1-step-away"] = sum(
-			(next_x, next_y) in state.getLegalNeighbors(g) for g in ghosts)
+        features["#-of-ghosts-1-step-away"] = sum(
+            (next_y, next_x) in state.getLegalNeighbors(g) for g in ghostPositions)
 
-		if not features["#-of-ghosts-1-step-away"] and food[next_x][next_y]:
-			features["eats-food"] = 1.0
+        if not features["#-of-ghosts-1-step-away"] and food[next_y][next_x]:
+            features["eats-food"] = 1.0
 
-		closestFood = state.getClosests((next_y, next_x))[0] ## food
-		if closestFood != []:
-			features["closest-food"] = float(closestFood[0][1]) / \
-				(state.M.width * state.M.height)
-		if scaredGhost:
-			distanceToClosestScaredGhost = min(
-				getManhattanDistances(scaredGhost))
-			if activeGhost:
-				distanceToClosestActiveGhost = min(
-					getManhattanDistances(activeGhost))
-			else:
-				distanceToClosestActiveGhost = 10
-			features["capsules"] = capsulesLeft
-			if distanceToClosestScaredGhost <= 8 and distanceToClosestActiveGhost >= 2:
-				features["#-of-ghosts-1-step-away"] = 0
-				features["eats-food"] = 0.0
+        closestFood = state.getClosests((next_y, next_x))[0] ## food
+        if closestFood != []:
+            features["closest-food"] = float(closestFood[0][1]) / \
+                (state.M.width * state.M.height)
+        if scaredGhost:
+            distanceToClosestScaredGhost = min(
+                getManhattanDistances(scaredGhost))
+            if activeGhost:
+                distanceToClosestActiveGhost = min(
+                    getManhattanDistances(activeGhost))
+            else:
+                distanceToClosestActiveGhost = 10
+            features["capsules"] = capsulesLeft
+            if distanceToClosestScaredGhost <= 8 and distanceToClosestActiveGhost >= 2:
+                features["#-of-ghosts-1-step-away"] = 0
+                features["eats-food"] = 0.0
 
-		features.divideAll(10.0)
-		return features
+        sys.stderr.write("active: %d, scared: %d, closestF: %d, activeGhost: %s, scaredG: %s" % (distanceToClosestActiveGhost, distanceToClosestScaredGhost, closestFood[0][1], activeGhost, scaredGhost))
+        features.divideAll(10.0)
+        return features
 
 class Counter(dict):
     
@@ -183,7 +186,6 @@ class Map:
         self._walls = None
         self._foods = None
             
-    
     def resize(self, h, w):
         self.height = h
         self.width = w
@@ -196,7 +198,7 @@ class Map:
             for x in range(self.width):
                 self._map[y][x] = self._translateChar(self._map[y][x])
         self._walls = Map([['%#'.find(c)+1 for c in r] for r in self._map])
-        self._foods  = Map([['.o'.find(c)+1 for c in r] for r in self._map])
+        self._foods  = Map([['.'.find(c)+1 for c in r] for r in self._map])
 
     def emplaceP(self, P, owns):
         for p in P:
@@ -423,6 +425,7 @@ class Game:
         a2 = self.getDir(a2) if a2!='' else ''
         sys.stdout.write("%s %s %s %s\n" % (G.id, G.tick, G.getOwn().id, a1+a2))
         sys.stderr.write("%s %s %s %s\n" % (G.id, G.tick, G.getOwn().id, a1+a2))
+        sys.stderr.write("Pos: (%d, %d)\n" %(G.getOwn().getPos()[0], G.getOwn().getPos()[1]))
 
     def getDir(self, d):
         if d == (0,1):
@@ -479,7 +482,7 @@ class Game:
 G = Game()
 while G.read():
     sys.stderr.write("%s\n" % G.M)
-    sys.stderr.write("%d, %d\n" % (G.M.width, G.M.height))
+    sys.stderr.write("%d, %d\n" % (G.M.height, G.M.width))
     #sys.stderr.write("%s\n" % G.getClosests((17,13)))
     
     a1 = G.agent.getPolicy(G)
