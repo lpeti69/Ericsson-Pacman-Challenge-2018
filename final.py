@@ -412,9 +412,6 @@ class Game:
         # map
         self.M[y][x] = ' '
         self.M[ny][nx] = 'P'
-        # ghosts
-        for g in self.G:
-            if g.frozen > 0: g.frozen -= 1
         # pacman
         P = self.getOwn()
         P.y, P.x = npos
@@ -426,6 +423,17 @@ class Game:
         a2 = self.getDir(a2) if a2!='' else ''
         sys.stdout.write("%s %s %s %s\n" % (G.id, G.tick, G.getOwn().id, a1+a2))
         sys.stderr.write("%s %s %s %s\n" % (G.id, G.tick, G.getOwn().id, a1+a2))
+
+    def getDir(self, d):
+        if d == (0,1):
+            return '>'
+        if d == (1,0):
+            return 'v'
+        if d == (0,-1):
+            return '<'
+        if d == (-1,0):
+            return '^'
+        return "ERROR DIR"
         
     
     def _readline(self):
@@ -465,19 +473,7 @@ class Game:
                     break
         if firstOnly:
             targets = [t[:1] for t in targets]
-        return targets
-
-    def getDir(self, d):
-        if d == (0,1):
-            return '>'
-        if d == (1,0):
-            return 'v'
-        if d == (0,-1):
-            return '<'
-        if d == (-1,0):
-            return '^'
-        return "ERROR DIR"
-                
+        return targets       
             
 
 G = Game()
