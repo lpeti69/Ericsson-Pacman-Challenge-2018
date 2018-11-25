@@ -2,6 +2,168 @@ import sys
 import queue
 import operator
 import numpy as np
+import random
+
+class Agent():
+
+    def __init__(self):
+        self.featureExtractor = FeatureExtractor()
+        self.weights = Counter()
+
+    def Qsa(self, state, action):
+        Qsa = 0.0
+        features = self.featureExtractor.getFeatures(state, action)
+        for key in features.keys():
+            Qsa += self.weights[key] * features[key]
+        return Qsa
+
+    def getPolicy(self, state):
+        actions = state.getLegalActions()
+        values = [self.Qsa(state, a) for a in actions]
+        if len(values) == 0:
+            return (0,0)
+        maxValue = max(values)
+        bestActions = [a for a, v in zip(actions, values) if v == maxValue]
+        if len(bestActions) == 0:
+            return (0,0)
+        return random.choice(bestActions)
+
+class FeatureExtractor:
+
+	def getFeatures(self, state, action):
+		# extract the grid of food and wall locations and get the ghost locations
+		food = state.M.getFoods()
+		walls = state.M.getWalls()
+		ghosts = state.getGhostPositions()
+		capsulesLeft = len(state.getCapsPositions())
+		scaredGhost = []
+		activeGhost = []
+		features = Counter()
+		for ghost in state.G:
+			if not ghost.eatable:
+				activeGhost.append(ghost)
+			else:
+				scaredGhost.append(ghost)
+
+		pos = state.getOwn().getPos()
+		def getManhattanDistances(ghosts):
+			return map(lambda g: abs(pos[0]-g[0]) + abs(pos[1]-g[1]), ghosts)
+
+		distanceToClosestActiveGhost = distanceToClosestScaredGhost = 0
+		features["bias"] = 1.0
+
+		x, y = pos
+		dy, dx = action
+		next_y, next_x = int(y + dy), int(x + dx)
+
+		features["#-of-ghosts-1-step-away"] = sum(
+			(next_x, next_y) in state.getLegalNeighbors(g) for g in ghosts)
+
+		if not features["#-of-ghosts-1-step-away"] and food[next_x][next_y]:
+			features["eats-food"] = 1.0
+
+		closestFood = state.getClosests((next_y, next_x))[0] ## food
+		if closestFood != []:
+			features["closest-food"] = float(closestFood[1]) / \
+				(state.M.width * state.M.height)
+		if scaredGhost:
+			distanceToClosestScaredGhost = min(
+				getManhattanDistances(scaredGhost))
+			if activeGhost:
+				distanceToClosestActiveGhost = min(
+					getManhattanDistances(activeGhost))
+			else:
+				distanceToClosestActiveGhost = 10
+			features["capsules"] = capsulesLeft
+			if distanceToClosestScaredGhost <= 8 and distanceToClosestActiveGhost >= 2:
+				features["#-of-ghosts-1-step-away"] = 0
+				features["eats-food"] = 0.0
+
+		features.divideAll(10.0)
+		return features
+
+class Counter(dict):
+    
+    def __getitem__(self, idx):
+        self.setdefault(idx, 0)
+        return dict.__getitem__(self, idx)
+
+    def incrementAll(self, keys, count):
+        for key in keys:
+            self[key] += count
+
+    def argMax(self):
+        if len(self.keys()) == 0: return None
+        all = self.items()
+        values = [x[1] for x in all]
+        maxIndex = values.index(max(values))
+        return all[maxIndex][0]
+
+    def sortedKeys(self):
+        sign = lambda x: 1 if x >=0 else -1
+        sortedItems = self.items()
+        compare = lambda x, y:  sign(y[1] - x[1])
+        sortedItems.sort(cmp=compare)
+        return [x[0] for x in sortedItems]
+
+    def totalCount(self):
+        return sum(self.values())
+
+    def normalize(self):
+        total = float(self.totalCount())
+        if total == 0: return
+        for key in self.keys():
+            self[key] = self[key] / total
+
+    def divideAll(self, divisor):
+        divisor = float(divisor)
+        for key in self:
+            self[key] /= divisor
+
+    def copy(self):
+        return Counter(dict.copy(self))
+
+    def __mul__(self, y ):
+        sum = 0
+        x = self
+        if len(x) > len(y):
+            x,y = y,x
+        for key in x:
+            if key not in y:
+                continue
+            sum += x[key] * y[key]
+        return sum
+
+    def __radd__(self, y):
+        for key, value in y.items():
+            self[key] += value
+
+    def __add__( self, y ):
+        addend = Counter()
+        for key in self:
+            if key in y:
+                addend[key] = self[key] + y[key]
+            else:
+                addend[key] = self[key]
+        for key in y:
+            if key in self:
+                continue
+            addend[key] = y[key]
+        return addend
+
+    def __sub__( self, y ):
+        addend = Counter()
+        for key in self:
+            if key in y:
+                addend[key] = self[key] - y[key]
+            else:
+                addend[key] = self[key]
+        for key in y:
+            if key in self:
+                continue
+            addend[key] = -1 * y[key]
+        return addend
+    
 
 class Map:
     def __init__(self, matrix=None):
@@ -44,6 +206,9 @@ class Map:
     
     def getFoods(self):
         return self._foods
+
+    def update(self):
+        pass
     
     def _translateChar(self, chr):
         tr_from = 'F 1+G'
@@ -79,7 +244,7 @@ class Pacman:
     
     def getBoosterRemain(self):
         return self.boost
-    
+
     def __str__(self):
         return ' '.join([str(self.id), str(self.team), str(self.y), str(self.x), str(self.boost), str(self.points), self.ppoints, self.msg])
 
@@ -121,8 +286,10 @@ class Game:
         self.M = Map()
         self.P = []
         self.G = []
+        self.weights = Counter()
         #
         self._ownIndex = 0
+        self.agent = Agent()
 
     def read(self):
 
@@ -162,7 +329,24 @@ class Game:
     
     def getOwn(self):
         return self.P[self._ownIndex]
-    
+
+    def getLegalActions(self):
+        actions = []
+        pos = self.getOwn().getPos()
+        for (dy,dx) in [(0,-1), (0,1), (-1,0), (1,0)]:
+            y,x = pos[0]+dy,pos[1]+dx
+            if not self.M.getWalls()[y][x]:
+                actions.append((dy,dx))
+        return actions
+
+    def getLegalNeighbors(self, pos):
+        neighbors = []
+        for (dy,dx) in [(0,-1), (0,1), (-1,0), (1,0)]:
+            y,x = pos[0]+dy,pos[1]+dx
+            if not self.M.getWalls()[y][x]:
+                neighbors.append((y,x))
+        return neighbors
+  
     def getGhostPositions(self):
         return [g.getPos() for g in self.G]
     
@@ -250,13 +434,31 @@ class Game:
         if firstOnly:
             targets = [t[:1] for t in targets]
         return targets
+
+    def getDir(self, d):
+        if d == (0,1):
+            return '>'
+        if d == (1,0):
+            return 'v'
+        if d == (0,-1):
+            return '<'
+        if d == (-1,0):
+            return '^'
+        return "ERROR DIR"
                 
             
 
 G = Game()
 while G.read():
-    print(G.M)
-    print(G.getClosests((17,13)))
+    sys.stderr.write("%s" % G.M)
+    sys.stderr.write("%d, %d" % (G.M.width, G.M.height))
+    sys.stderr.write("%s" % G.getClosests((17,13)))
     
+    action = G.agent.getPolicy(G)
+    sys.stdout.write("%s" % G.getDir(action))
+    if G.getOwn().getBoosterRemain() > 0:
+        G.M.update() ## TODO
+        action = G.agent.getPolicy(G)
+        sys.stdout.write("%s" % G.getDir(action))
     #  c o d e   g o e s   h e r e
     
