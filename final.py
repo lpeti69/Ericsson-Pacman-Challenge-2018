@@ -234,8 +234,13 @@ class Game:
             pos  = (y, x) = Q.get()
             dist = distance[pos]
             for (dy,dx) in [(0,-1), (0,1), (-1,0), (1,0)]:
-                npos = (ny, nx) = (y+dy, x+dx)
-                if ny<0 or M.height<=ny or nx<0 or M.width<=nx: continue
+                (ny, nx) = (y+dy, x+dx)
+                # clip
+                if ny < 0: ny += M.height
+                elif ny >= M.height: ny -= M.height
+                if nx < 0: nx += M.width
+                elif nx >= M.width: nx -= M.width
+                npos = (ny, nx)
                 if isWall(M,ny,nx) or visited[npos]: continue
                 # add
                 visited[npos] = True
