@@ -81,9 +81,12 @@ class FeatureExtractor:
 		# count the number of ghosts 1-step away
 		features["#-of-ghosts-1-step-away"] = sum(
 			(next_x, next_y) in Actions.getLegalNeighbors(g, walls) for g in ghosts)
+		features["#-of-ghosts-2-step-away"] = sum(
+			[(next_x, next_y) in Actions.getLegalNeighbors(neighbor, walls) for neighbor in [Actions.getLegalNeighbors(g, walls) for g in ghosts]]
+		)
 
 		# if there is no danger of ghosts then add the food feature
-		if not features["#-of-ghosts-1-step-away"] and food[next_x][next_y]:
+		if (not features["#-of-ghosts-1-step-away"] and not features['#-of-ghosts-2-step-away']) and food[next_x][next_y]:
 			features["eats-food"] = 1.0
 
 		dist = closestFood((next_x, next_y), food, walls)
@@ -103,8 +106,9 @@ class FeatureExtractor:
 			features["capsules"] = capsulesLeft
 			#features["dist-to-closest-active-ghost"] = 2*(1./distanceToClosestActiveGhost)
 			# features["#-of-ghosts-1-step-away"] >= 1:
-			if distanceToClosestScaredGhost <= 8 and distanceToClosestActiveGhost >= 2:
+			if distanceToClosestScaredGhost <= 8 and distanceToClosestActiveGhost >= 3:
 				features["#-of-ghosts-1-step-away"] = 0
+				features["#-of-ghosts-2-step-away"] = 0
 				features["eats-food"] = 0.0
 				#features["closest-food"] = 0
 

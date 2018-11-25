@@ -9,11 +9,11 @@ class Agent():
     def __init__(self):
         self.featureExtractor = FeatureExtractor()
         self.weights = Counter()
-        self.weights['eats-food'] = 215.1656253667629
-        self.weights['closest-food'] = -1.1901203570404904
-        self.weights['bias'] = 113.4627147751201
-        self.weights['capsules'] = 12.8180044889
-        self.weights['#-of-ghosts-1-step-away'] = -250.5676392640621
+        self.weights['eats-food'] = 206.9489441331618
+        self.weights['closest-food'] = -7.774420572282746
+        self.weights['bias'] = 128.04474477499346
+        self.weights['capsules'] = 58.80749768461728
+        self.weights['#-of-ghosts-1-step-away'] = -187.79788419328298
 
     def Qsa(self, state, action):
         Qsa = 0.0
@@ -61,7 +61,7 @@ class FeatureExtractor:
 
         y,x = pos
         dy, dx = action
-        next_y, next_x = int(y + dy), int(x + dx)
+        next_y, next_x = state.clip(state.M, y+dy, x+dx)
 
         features["#-of-ghosts-1-step-away"] = sum(
             (next_y, next_x) in state.getLegalNeighbors(g) for g in ghostPositions)
