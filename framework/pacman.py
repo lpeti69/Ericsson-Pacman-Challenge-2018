@@ -446,7 +446,7 @@ class PacmanRules:
             state.data.capsules.remove( position )
             state.data._capsuleEaten = position
             divider = (state.data.tick / state.data.maxTick <= 1/3) + 1
-            state.data.reward[agentIndex] += CNST.SCORE_BOOSTER / divider
+            state.data.reward[agentIndex] += CNST.SCORE_BOOSTER
             agentState = state.data.agentStates[agentIndex]
             agentState.boosterTimer = 2*CNST.BOOSTER_DURATION
             agentState.hasUsedBoosterBefore = True
