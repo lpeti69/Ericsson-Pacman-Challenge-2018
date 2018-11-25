@@ -652,10 +652,10 @@ def unmutePrint():
     #sys.stderr = _ORIGINAL_STDERR
 
 def clip(layout, x, y):
-    if x < 0: x += layout.height
-    elif x >= layout.height: x -= layout.height
     if y < 0: y += layout.width
     elif y >= layout.width: y -= layout.width
+    if x < 0: x += layout.height
+    elif x >= layout.height: x -= layout.height
     return (x, y)
 
 def getPacmanFromPosition(state,x,y):
@@ -675,15 +675,15 @@ def getClosests(state, pos):
                     lambda x,y: state.data.layout.food[x][y],
                     lambda x,y: state.isCapsulePos((x,y)),
                     lambda x,y: state.isEnemyPacmanPos((x,y)),
-                    lambda x,y: state.isEnemyPacmanPos((x,y)) and state.getScore(getPacmanFromPosition(state,x,y).index) > state.data.scores[0],
-                    lambda x,y: state.isEnemyPacmanPos((x,y)) and state.getScore(getPacmanFromPosition(state,x,y).index) < state.data.scores[0],
+                    lambda x,y: state.isEnemyPacmanPos((x,y)) and state.getScore(getPacmanFromPosition(state,x,y).index) > state.data.score[0],
+                    lambda x,y: state.isEnemyPacmanPos((x,y)) and state.getScore(getPacmanFromPosition(state,x,y).index) < state.data.score[0],
                     lambda x,y: state.isGhostPos((x,y)),
                     lambda x,y: state.isGhostPos((x,y)) and getGhostFromPosition(state,x,y).scaredTimer[0]>0,
                     lambda x,y: state.isGhostPos((x,y)) and getGhostFromPosition(state,x,y).scaredTimer[0]==0])
 
 def BFS(M=None,
          starts=[],
-         isWall=lambda m,x,y:m.walls[x][y]=='%',
+         isWall=lambda m,x,y:m.walls[x][y] in (1,2),
          isTarget=[],
          firstOnly=True,
          maxDistance=sys.maxsize):
@@ -706,7 +706,6 @@ def BFS(M=None,
         dist = distance[pos]
         for (dx,dy) in [(0,-1), (0,1), (-1,0), (1,0)]:
             npos = (nx, ny) = clip(M, x+dx, y+dy)
-            print nx,ny
             if isWall(M,nx,ny) or visited[npos]: continue
             # add
             visited[npos] = True
