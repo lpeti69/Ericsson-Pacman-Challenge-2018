@@ -90,7 +90,7 @@ class FeatureExtractor:
         for ghost in activeGhost:
             sys.stderr.write("active: (%d, %d)" % (ghost.getPos()[0], ghost.getPos()[1]))
         for ghost in scaredGhost:
-            sys.stderr.write("active: (%d, %d)" % (ghost.getPos()[0], ghost.getPos()[1]))
+            sys.stderr.write("scared: (%d, %d)" % (ghost.getPos()[0], ghost.getPos()[1]))
         features.divideAll(10.0)
         return features
 
@@ -333,7 +333,7 @@ class Game:
         self._capsPos = [(x,y) for x in range(self.M.height) for y in range(self.M.width) if G.M[x][y] == 'o']
         
         # booster fix
-        if G.pacmanid != -1 and self.getOwn().getBoosterRemain():
+        if G.pacmanid != -1 and self.getOwn().getBoosterRemain() == 0:
             for g in self.G: g.eatable = 0
 
         # successful reading
