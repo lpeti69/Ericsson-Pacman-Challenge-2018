@@ -331,6 +331,10 @@ class Game:
         else: self._ownIndex = None
         #_capsPos
         self._capsPos = [(x,y) for x in range(self.M.height) for y in range(self.M.width) if G.M[x][y] == 'o']
+        
+        # booster fix
+        if G.pacmanid != -1 and self.getOwn().getBoosterRemain():
+            for g in self.G: g.eatable = 0
 
         # successful reading
         return G.pacmanid != -1
