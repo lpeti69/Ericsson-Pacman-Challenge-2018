@@ -84,7 +84,6 @@ class FeatureExtractor:
 			(next_x, next_y) in Actions.getLegalNeighbors(g, walls) for g in ghosts)
 
 		## general query functions
-		print "IIIIIIIIIIII ", next_x, next_y
 		minDistArray = util.getClosests(state, (next_x, next_y))
 		#countArray 	 = util.BFS(M=state, 
 		#						starts=[(next_x, next_y)],
@@ -100,7 +99,7 @@ class FeatureExtractor:
 
 		## food
 		features["closest-food"] = minDists[0]
-		features["num-food"] = counts[0] ## TODO: Add dead-end?
+		features["num-food"] = counts[0]
 
 		## capsules
 		features["closest-capsule"] = minDists[1]
@@ -143,9 +142,6 @@ class FeatureExtractor:
 		#features["#-of-ghosts-0-step-away"] = cg1[6] + cg1[7] ## TODO
 		## etc
 
-		if features['num-food'] > 2*features['closest-active-ghost'] and food[next_x][next_y]:
-			features['eats-food'] = 1.0
-
 		# call: getClosests((y,x))
 		# [food, cap, pacman, biggerPacmap, smallerPacman, ghost, scaradGhost, activeGhost]
 		# format: [ ((y1,x1),dist1), ((y2,x2),dist2), ... ]
@@ -153,6 +149,11 @@ class FeatureExtractor:
 		# if there is no danger of ghosts then add the food feature
 		if (not features["#-of-ghosts-1-step-away"] and not features['#-of-ghosts-2-step-away']) and food[next_x][next_y]:
 			features["eats-food"] = 1.0
+
+		## dead end
+		if features['num-food'] <= 2*features['closest-active-ghost'] and food[next_x][next_y]:
+			features['eats-food'] = 0.0
+			features['eats-capsule'] = 0.0
 
 		dist = closestFood((next_x, next_y), food, walls)
 		if dist is not None:
