@@ -641,7 +641,6 @@ class Game:
         """
         self.display.initialize(self.state.data)
         self.numMoves = 0
-
         ###self.display.initialize(self.state.makeObservation(1).data)
         # inform learning agents of the game start
         for i in range(len(self.agents)):

@@ -18,8 +18,12 @@ from util import nearestPoint
 from util import BFS
 import copy, sys
 import distanceCalculator
+from featureExtractors import FeatureExtractor
 import numpy as np
 import random, time, game, util
+
+def scoreEvaluation(state, agentIndex):
+    return state.getScore(agentIndex)
 
 class LeftTurnAgent(Agent):
     "An agent that turns left at every opportunity"
@@ -55,18 +59,19 @@ class GreedyAgent(Agent):
         return random.choice(bestActions)
 
 
-# ide csak absztrakt dolgok jonnek
-# foleg static meg egyeb helper..
 class ReinforcementLearningAgent(Agent):
-    def __init__( self, index, timeForComputing = .25 ):
-        self.index = index
+    def __init__(self, timeForComputing = .25, alpha = 0.1, epsilon = 0.05, gamma = 0.8, numTraining = 1):
         self.observationHistory = []
-        self.timeForComputing = timeForComputing
-        self.computationTimes = []
-        self.approximators = []
-        self.isTraining = True
-        self.display = None
-        self.numthGame = 1
+        self.timeForComputing   = timeForComputing
+        self.computationTimes   = []
+        self.numTraining        = int(numTraining)
+        self.alpha              = float(alpha)
+        self.epsilon            = float(epsilon)
+        self.gamma              = float(gamma)
+        self.display            = None
+        self.episodes           = 0
+        self.accumTrainRewards  = 0.0
+        self.accumTestRewards   = 0.0
 
     def __str__(self):
         return "AgentState: {}\Weights: {}\nComputationTimes: {}".format(
@@ -75,175 +80,168 @@ class ReinforcementLearningAgent(Agent):
             self.computationTimes
         )
 
-    def setisTraining(self, isTraining):
-        self.isTraining = isTraining
+    def isInTraining(self):
+        return self.episodes < self.numTraining
 
-    def observationFunction(self, gameState):
-        return gameState.deepCopy()
+    def observeTransition(self, state, action, nextState, reward):
+        self.episodeRewards += reward
+        self.update(state, action, nextState, reward)
 
-    def registerInitialState(self, gameState):
-        self.observationHistory = []
-        self.numthGame += 1
-        import __main__
-        if '_display' in dir(__main__):
-            self.display = __main__._display
-
-    def final(self, gameState, fileName = 'weights.txt'):
-        print "Avg time for evaulate: {}".format(sum(self.computationTimes) / float(len(self.computationTimes)))
-        print self.weights
-        with open(fileName, 'w') as file:
-            for weight in self.weights:
-                file.write(str(weight) + '\n')
-
-    def updateWeights(self, state, action, alpha = .1, gamma = .9):
-        ## TODO: Need to handle r(it is not provided, since the state reward not updated yet)
-        Qsa = self.evaluate(state, action)
-        newState = self.getSuccessor(state, action)
-        r = newState.data.reward[self.index]
-        ## -1 provided for epsilon => it will select according to the current strategy
-        newAction = self.getPolicyAction(newState)
-        maxQsa = self.evaluate(newState, newAction)
-        ## TODO: Optimalize: vector function?
-        #print r, self.weights, maxQsa, Qsa
-        for i in range(len(self.features)):
-            self.weights[i] = self.weights[i] + alpha*(r + gamma*maxQsa - Qsa)*self.features[i](newState)#(float(self.features[i](newState)) - float(self.features[i](state)))
-            self.weights[i] /= np.linalg.norm(self.weights)
-            #print self.features[i](newState)
-        #print self.weights
-
-    ## Approximates Q(s,a)
-    def evaluate(self, gameState, action):
-        if action == Directions.STOP:
-            return 0
-        successor = self.getSuccessor(gameState, action)
-        #pfs = [feature(gameState) for feature in self.features]
-        #cfs = [feature(successor) for feature in self.features]
-        Qsa = 0
-        for i, weight in enumerate(self.weights):
-            Qsa += weight * self.features[i](successor)#(float(cfs[i]) - float(pfs[i]))
-        return Qsa
-
-    def getSuccessor(self, gameState, action):
-        successor = gameState.deepCopy().generateSuccessor(self.index, action)
-        pos = successor.getMyPacmanPosition()
-        ## DEBUG
-        lastPos = gameState.getMyPacmanPosition()
-        currPos = successor.getMyPacmanPosition()
-        #print "reward: {}, ({},{}) -> ({},{})".format(successor.data.reward[self.index], lastPos[0], lastPos[1], currPos[0], currPos[1])
-        ## END DEBUG
-        if pos != nearestPoint(pos):
-            return successor.deepCopy().generateSuccessor(self.index, action)
-        else:
-            return successor
-
-    def getAction(self, gameState, epsilonDecay = .99, alphaDecay = .75):
-        self.observationHistory.append(gameState)
-        myPos = gameState.getMyPacmanPosition()
-        if myPos != nearestPoint(myPos):
-            return gameState.getLegalActions(self.index)[0]
-        
-        epsilon = np.power(epsilonDecay, gameState.data.tick + 3*self.numthGame)
-        #alpha   = np.power(alphaDecay, self.numthGame)
-        alpha = 0.1
-        action  = self.chooseAction(gameState, epsilon)
-        if self.isTraining:
-            self.updateWeights(gameState, action, alpha)
-        return action
-
-    def chooseAction(self, gameState, epsilon):
-        util.raiseNotDefined()
-
-class MyAgent(ReinforcementLearningAgent):
-    def __init__(self, index = 0, weights = []):
-        ReinforcementLearningAgent.__init__(self, index)
-        radius = 10
-        self.features = [
-            lambda state: 1,
-            lambda state: self.closest(state, lambda s, x, y: s.hasFood(x,y))[1],
-            lambda state: 1/(self.closest(state, lambda s, x, y: s.hasFood(x,y))[1])**2,
-            lambda state: self.closest(state, lambda s, x, y: (x,y) in s.getCapsules())[1],
-            self.isEnemyGhostXStepsAway(1, active=True),
-            self.isEnemyGhostXStepsAway(2, active=True),
-            self.isEnemyGhostXStepsAway(1, active=False),
-            self.isEnemyGhostXStepsAway(2, active=False),
-            lambda state: self.closestGhost(state, active=True),
-            lambda state: self.closestGhost(state, active=False),
-            lambda state: self.closestEnemyPacman(state, higherScore=True),
-            lambda state: self.closestEnemyPacman(state, higherScore=False),
-            self.isEnemyPacmanXStepsAway(3, higherScore = False),
-            self.numScaredGhostsXStepsAway(radius),
-            lambda state: BFS(state, [state.getMyPacmanPosition()], lambda s,x,y: s.hasFood(x,y), radius)[0],
-            lambda state: BFS(state, [state.getMyPacmanPosition()], lambda s,x,y: (x,y) in s.getCapsules(), radius)[0]
-        ]
-        if len(weights) == 0:
-            self.weights = []
-            for i in range(len(self.features)):
-                self.weights.append(1.0 * float(i == 0))
-        else:
-            self.weights = weights
-
-    def numScaredGhostsXStepsAway(self, radius):
-        return lambda state: BFS(state, [state.getMyPacmanPosition()], lambda s,x,y: self.ghostEval(s,x,y,False), radius)[0]
-
-    def isEnemyGhostXStepsAway(self, numStepsAway, active = True):
-        return lambda state: self.closest(state, lambda s,x,y: self.ghostEval(s,x,y,active))[1] <= numStepsAway
-
-    def closestGhost(self, state, active = True):
-        closest = self.closest(state, lambda s,x,y: self.ghostEval(s,x,y,active))[1]
-        if closest == sys.maxsize + 1:
-            return 0
-        return closest
-
-    def closestEnemyPacman(self, state, higherScore = True):
-        closest = self.closest(state, lambda s,x,y: self.pacmanEval(s,x,y,higherScore))[1]
-        if closest == sys.maxsize + 1:
-            return 0
-        return closest
-
-    def isEnemyPacmanXStepsAway(self, numStepsAway, higherScore = True):
-        return lambda state: self.closest(state, lambda s,x,y: self.pacmanEval(s,x,y,higherScore))[1] <= numStepsAway
-
-    def ghostEval(self, state, x, y, active = True):
-        for ghost in state.getGhostStates():
-            if (y,x) == state.getGhostPosition(ghost.index) \
-            and (ghost.scaredTimer[self.index] == 0) == active:
-                return True
-        return False
-
-    def pacmanEval(self, state, x, y, higherScore = True):
-        for pacman in state.getPacmanStates():
-            if pacman.index != 0 \
-            and (state.data.score[pacman.index] > state.data.score[self.index]) == higherScore:
-                return True
-        return False
-
-    # usage e.g.: (count, closest, furthest, dists, visits) = closest(state, lambda)
-    def closest(self, state, evalFun):
-        return BFS(state, [state.getMyPacmanPosition()], evalFun)
+    def observationFunction(self, state):
+        if not self.lastState is None:
+            reward = state.getScore(self.index) - self.lastState.getScore(self.index)
+            self.observeTransition(self.lastState, self.lasAction, state, reward)
+        return state
 
     def registerInitialState(self, gameState):
         self.start = gameState.getMyPacmanPosition()
-        ReinforcementLearningAgent.registerInitialState(self, gameState)
+        self.startEpisode()
+        if self.episodes == 0:
+            print 'Beginning %d episodes of Training' % (self.numTraining)
 
-    def getPolicyAction(self, gameState):
-        return self.chooseAction(gameState, 0)
+    def getAction(self, state):
+        uitl.raiseNotDefined()
 
-    def chooseAction(self, gameState, epsilon):
-        actions = gameState.getLegalActions(self.index)
-        if len(actions) == 0:
+    def startEpisode(self):
+        self.lasAction = None
+        self.lastState = None
+        self.episodeRewards = 0.0
+        self.observationHistory = []
+
+    def endEpisode(self):
+        if self.episodes < self.numTraining:
+            self.accumTrainRewards += self.episodeRewards
+        self.episodes += 1
+        if self.episodes >= self.numTraining:
+            self.epsilon = 0.0
+            self.alpha   = 0.0
+
+    def doAction(self, state, action):
+        self.lastState = state
+        self.lasAction = action
+
+    def final(self, state, fileName = 'weights.txt'):
+        reward = state.getScore(self.index) - self.lastState.getScore(self.index)
+        self.observeTransition(self.lastState, self.lasAction, state, reward)
+        self.endEpisode()
+
+        if not 'episodeStartTime' in self.__dict__:
+            self.episodeStartTime = time.time()
+        if not 'lastWindowAccumRewards' in self.__dict__:
+            self.lastWindowAccumRewards = 0.0
+        self.lastWindowAccumRewards += state.getScore(self.index)
+
+        NUM_EPS_UPDATE = 10
+        if self.episodes % NUM_EPS_UPDATE == 0:
+            print 'Reinforcement Learning Status:'
+            windowAvg = self.lastWindowAccumRewards / float(NUM_EPS_UPDATE)
+            if self.episodes <= self.numTraining:
+                trainAvg = self.accumTrainRewards / float(self.episodes)
+                print '\tCompleted %d out of %d training episodes' % (
+                    self.episodes,self.numTraining)
+                print '\tAverage Rewards over all training: %.2f' % (
+                    trainAvg)
+                print '\tAvg time for evaulate: {}'.format(sum(self.computationTimes) / float(len(self.computationTimes)))
+            else:
+                testAvg = float(self.accumTestRewards) / (self.episodes - self.numTraining)
+                print '\tCompleted %d test episodes' % (self.episodes - self.numTraining)
+                print '\tAverage Rewards over testing: %.2f' % testAvg
+            print '\tAverage Rewards for last %d episodes: %.2f'  % (
+               NUM_EPS_UPDATE,windowAvg)
+            print '\tEpisode took %.2f seconds' % (time.time() - self.episodeStartTime)
+            self.lastWindowAccumRewards = 0.0
+            self.episodeStartTime = time.time()
+
+        if self.episodes == self.numTraining:
+            print 'Training Done (turning off epsilon and alpha)\n'
+            
+class QLearningAgent(ReinforcementLearningAgent):
+    def __init__(self, **args):
+        ReinforcementLearningAgent.__init__(self, **args)
+        print "ALPHA", self.alpha
+        print "GAMMA", self.gamma
+        print "EPS",   self.epsilon
+    
+    def Qsa(self, state, action):
+        util.raiseNotDefined()
+
+    def maxQsa(self, state):
+        util.raiseNotDefined()
+
+    def getPolicy(self, state):
+        util.raiseNotDefined()
+
+    def getAction(self, state):
+        self.observationHistory.append(state)
+        legalActions = state.getLegalActions(self.index)
+        action = Directions.STOP
+        if len(legalActions) > 0:
+            if np.random.uniform(0,1) > self.epsilon and self.isInTraining():
+                action = random.choice(legalActions)
+            else:
+                action = self.getPolicy(state)
+        return action
+    
+
+class ApproximateQLearningAgent(QLearningAgent):
+    def __init__(self, epsilon=0.05, gamma=0.8, alpha=0.2, numTraining=1, weights = util.Counter(), **args):
+        self.index = 0
+        self.featureExtractor = FeatureExtractor()
+        self.weights = weights
+        args['epsilon'] = epsilon
+        args['gamma'] = gamma
+        args['alpha'] = alpha
+        args['numTraining'] = numTraining
+        QLearningAgent.__init__(self, **args)
+
+    def getAction(self, state):
+        start = time.time()
+        action = QLearningAgent.getAction(self, state)
+        self.computationTimes.append(time.time() - start)
+        self.doAction(state, action)
+        #epsilon = np.power(epsilonDecay, gameState.data.tick + 3*self.numthGame)
+        #alpha   = np.power(alphaDecay, self.numthGame)
+        return action
+
+    def Qsa(self, state, action):
+        Qsa = 0.0
+        features = self.featureExtractor.getFeatures(state, action)
+        for key in features.keys():
+            Qsa += self.weights[key] * features[key]
+        return Qsa
+
+    def maxQsa(self, state):
+        action = self.getPolicy(state)
+        return self.Qsa(state, action)
+
+    def getPolicy(self, state):
+        actions = state.getLegalActions(self.index)
+        values = [self.Qsa(state, a) for a in actions]
+        if len(values) == 0:
             return Directions.STOP
-        bestActions = actions
-        if np.random.uniform(0,1) >= epsilon or not self.isTraining:
-            start = time.time()
-            values = [self.evaluate(gameState, a) for a in actions]
-            self.computationTimes.append(time.time() - start)
-            if len(values) == 0:
-                return Directions.STOP
-            maxValue = max(values)
-            bestActions = [a for a, v in zip(actions, values) if v == maxValue]
-            if len(bestActions) == 0:
-                return Directions.STOP
+        maxValue = max(values)
+        bestActions = [a for a, v in zip(actions, values) if v == maxValue]
+        if len(bestActions) == 0:
+            return Directions.STOP
         return random.choice(bestActions)
+    
+    def update(self, state, action, nextState, reward):
+        features = self.featureExtractor.getFeatures(state, action)
+        Qsa     = self.Qsa(state, action)
+        maxQsa  = self.maxQsa(nextState)
+        alpha   = self.alpha
+        gamma   = self.gamma
+        for key in features.keys():
+            self.weights[key] += alpha*(reward + gamma*maxQsa - Qsa)*features[key]
 
-def scoreEvaluation(state, agentIndex):
-    return state.getScore(agentIndex)
+class MyPacmanAgent(ApproximateQLearningAgent):
+    def __init__(self, **args):
+        ApproximateQLearningAgent.__init__(self, **args)
+
+    def final(self, state):
+        ApproximateQLearningAgent.final(self, state)
+        print self.weights
+        if self.episodes == self.numTraining:
+            with open('weights.txt', 'w') as file:
+                for feature, weight in self.weights.items():
+                    file.write(feature + ':' + str(weight) + '\n')
