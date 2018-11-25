@@ -26,7 +26,22 @@ class Agent():
         return Qsa
 
     def getPolicy(self, state):
-        actions = [a for a in state.getLegalActions() if state.getPossibilities(state.getOwn().getPos(),a)>5]
+        threshold = state._BFS(M=state.M,
+                                starts=[state.getOwn().getPos()],
+                                isTarget=[lambda m,y,x: m[y][x]=='G'],
+                                firstOnly=True)[0]
+        if len(threshold) > 0:
+            actions = []
+            threshold = threshold[0][1]
+            for a in state.getLegalActions():
+                posibs = state.getPossibilities(state.getOwn().getPos(),a)
+                if posibs < 8:
+                    if 2*posibs < threshold:
+                        actions.append(a)
+                else:
+                    actions.append(a)
+        else:
+            actions = state.getLegalActions()
         values = [self.Qsa(state, a) for a in actions]
         if len(values) == 0:
             return (0,0)
