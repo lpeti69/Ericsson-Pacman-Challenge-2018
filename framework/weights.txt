@@ -1,24 +1,14 @@
-bias:4.143713321161553
-#-of-ghosts-4-step-away:13.568570701759937
-#-of-scared-ghosts-1-step-away:-2.84611252124
-closest-capsule:13.814223304768888
-capsules:-0.056127225711822104
-#-of-stronger-pacman-2-step-away:1.53495587761
-#-of-ghosts-3-step-away:-0.333320322765
-#-of-scared-ghosts-2-step-away:-2.84611252124
-closest-active-ghost:38.16743634041319
-#-of-ghosts-1-step-away:13.044113953958936
-#-of-weaker-pacman-3-step-away:-1.92943348998
-#-of-weaker-pacman-1-step-away:-1.92943348998
-closest-weaker-pacman:-0.7561230556137769
-#-of-weaker-pacman-2-step-away:-1.92943348998
-eats-ghosts:-6.60057716060056
-#-of-ghosts-2-step-away:13.044113953958936
-#-of-stronger-pacman-1-step-away:1.53495587761
-eats-food:1.9671493098131902
-closest-food:-27.156376719786735
-#-of-stronger-pacman-3-step-away:1.53495587761
-closest-scared-ghost:0.12675235527492024
-eats-pacman:-4.840623573379052
-eats-capsule:0.170552152372
-num-food:18.612690899702223
+ closest-food: -37.39613622737373
+ closest-scared-ghost: -17.701301070157527
+ eats-ghosts: 13.933907388967345
+ eats-capsule: 0.30540529769778074
+ closest-active-ghost: 56.9683223543468
+ eats-pacman: 11.690504177527846
+ bias': 0.07892931934493161
+ #-of-ghosts-2-step-away: -11.3779938184255
+ #-of-ghosts-4-step-away: -11.3779938184255
+ #-of-ghosts-1-step-away: -11.3779938184255
+ closest-capsule: -10.461128881982578
+ capsules: 8.267269807834454
+ num-food: 18.428054389921567
+ eats-food: 2.0811322517599358

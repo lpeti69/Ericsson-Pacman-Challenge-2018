@@ -86,7 +86,7 @@ class FeatureExtractor:
 
 		## general query functions
 		minDists = util.getClosests(state, (next_x, next_y))
-		counts 	 = util.getCount(state, (x,y), (next_x, next_y), 10)
+		#counts 	 = util.getCount(state, (x,y), (next_x, next_y), 10)
 		#features['num-food'] = counts[0]
 		#						starts=[(next_x, next_y)],
 		#						isWall=lambda m,X,Y: m.walls[X][Y]=='%' or (X,Y) == (x,y),  
@@ -104,31 +104,31 @@ class FeatureExtractor:
 		#for i, dist in enumerate(counts):
 			#features['num-' + labels[i]] = dist
 
-		ghosts1 = util.getCount(state, (x,y), (next_x, next_y), 1,  [
-			lambda s,x,y: s.isGhostPos((x,y)) and  util.getGhostFromPosition(s,x,y).scaredTimer[0]>0,
-            lambda s,x,y: s.isGhostPos((x,y)) and  util.getGhostFromPosition(s,x,y).scaredTimer[0]==0])
-		ghosts2 = util.getCount(state, (x,y), (next_x, next_y), 2,  [
-			lambda s,x,y: s.isGhostPos((x,y)) and  util.getGhostFromPosition(s,x,y).scaredTimer[0]>0,
-            lambda s,x,y: s.isGhostPos((x,y)) and  util.getGhostFromPosition(s,x,y).scaredTimer[0]==0])
-		ghosts4 = util.getCount(state, (x,y), (next_x, next_y), 4,  [
-			lambda s,x,y: s.isGhostPos((x,y)) and  util.getGhostFromPosition(s,x,y).scaredTimer[0]>0,
-            lambda s,x,y: s.isGhostPos((x,y)) and  util.getGhostFromPosition(s,x,y).scaredTimer[0]==0])
+		#ghosts1 = util.getCount(state, (x,y), (next_x, next_y), 1,  [
+		#	lambda s,x,y: s.isGhostPos((x,y)) and  util.getGhostFromPosition(s,x,y).scaredTimer[0]>0,
+        #    lambda s,x,y: s.isGhostPos((x,y)) and  util.getGhostFromPosition(s,x,y).scaredTimer[0]==0])
+		#ghosts2 = util.getCount(state, (x,y), (next_x, next_y), 2,  [
+		#	lambda s,x,y: s.isGhostPos((x,y)) and  util.getGhostFromPosition(s,x,y).scaredTimer[0]>0,
+        #    lambda s,x,y: s.isGhostPos((x,y)) and  util.getGhostFromPosition(s,x,y).scaredTimer[0]==0])
+		#ghosts4 = util.getCount(state, (x,y), (next_x, next_y), 4,  [
+		#	lambda s,x,y: s.isGhostPos((x,y)) and  util.getGhostFromPosition(s,x,y).scaredTimer[0]>0,
+        #    lambda s,x,y: s.isGhostPos((x,y)) and  util.getGhostFromPosition(s,x,y).scaredTimer[0]==0])
 		
-		features['#-of-ghosts-1-step-away'] = ghosts1[1]
-		features['#-of-ghosts-2-step-away'] = ghosts2[1]
-		features['#-of-ghosts-4-step-away'] = ghosts4[1]
+		#features['#-of-ghosts-1-step-away'] = ghosts1[1]
+		#features['#-of-ghosts-2-step-away'] = ghosts2[1]
+		#features['#-of-ghosts-4-step-away'] = ghosts4[1]
 		#features['#-of-scared-ghosts-1-step-away'] = ghosts1[0]
 		#features['#-of-scared-ghosts-2-step-away'] = ghosts2[0]
 
-		pacmans1 = util.getCount(state, (x,y), (next_x, next_y), 1,  [
-			lambda s,x,y: s.isEnemyPacmanPos((x,y)) and s.getScore(util.getPacmanFromPosition(s,x,y).index) > s.data.score[0],
-			lambda s,x,y: s.isEnemyPacmanPos((x,y)) and s.getScore(util.getPacmanFromPosition(s,x,y).index) < s.data.score[0]])
-		pacmans2 = util.getCount(state, (x,y), (next_x, next_y), 2,  [
-			lambda s,x,y: s.isEnemyPacmanPos((x,y)) and s.getScore(util.getPacmanFromPosition(s,x,y).index) > s.data.score[0],
-			lambda s,x,y: s.isEnemyPacmanPos((x,y)) and s.getScore(util.getPacmanFromPosition(s,x,y).index) < s.data.score[0]])
-		pacmans3 = util.getCount(state, (x,y), (next_x, next_y), 3,  [
-			lambda s,x,y: s.isEnemyPacmanPos((x,y)) and s.getScore(util.getPacmanFromPosition(s,x,y).index) > s.data.score[0],
-			lambda s,x,y: s.isEnemyPacmanPos((x,y)) and s.getScore(util.getPacmanFromPosition(s,x,y).index) < s.data.score[0]])
+		#pacmans1 = util.getCount(state, (x,y), (next_x, next_y), 1,  [
+		#	lambda s,x,y: s.isEnemyPacmanPos((x,y)) and s.getScore(util.getPacmanFromPosition(s,x,y).index) > s.data.score[0],
+		#	lambda s,x,y: s.isEnemyPacmanPos((x,y)) and s.getScore(util.getPacmanFromPosition(s,x,y).index) < s.data.score[0]])
+		#pacmans2 = util.getCount(state, (x,y), (next_x, next_y), 2,  [
+		#	lambda s,x,y: s.isEnemyPacmanPos((x,y)) and s.getScore(util.getPacmanFromPosition(s,x,y).index) > s.data.score[0],
+		#	lambda s,x,y: s.isEnemyPacmanPos((x,y)) and s.getScore(util.getPacmanFromPosition(s,x,y).index) < s.data.score[0]])
+		#pacmans3 = util.getCount(state, (x,y), (next_x, next_y), 3,  [
+		#	lambda s,x,y: s.isEnemyPacmanPos((x,y)) and s.getScore(util.getPacmanFromPosition(s,x,y).index) > s.data.score[0],
+		#	lambda s,x,y: s.isEnemyPacmanPos((x,y)) and s.getScore(util.getPacmanFromPosition(s,x,y).index) < s.data.score[0]])
 
 		#features['#-of-stronger-pacman-1-step-away'] = pacmans1[0]
 		#features['#-of-stronger-pacman-2-step-away'] = pacmans2[0]
@@ -136,17 +136,17 @@ class FeatureExtractor:
 		#features['#-of-weaker-pacman-1-step-away'] = pacmans1[1]
 		#features['#-of-weaker-pacman-2-step-away'] = pacmans2[1]
 		#features['#-of-weaker-pacman-3-step-away'] = pacmans3[1]
-		if minDists[1] != [] and minDists[1][0] < 10:
-			features['closest-capsule'] = minDists[1][0]
+		#if minDists[1] != [] and minDists[1][0] < 10:
+		#	features['closest-capsule'] = minDists[1][0]
 		if minDists[5] != []:
 			features['closest-active-ghost'] = minDists[5][0]
 		if minDists[4] != []:
 			features['closest-scared-ghost'] = minDists[4][0]
 
-		dangerous = lambda: (features['#-of-ghosts-1-step-away'] + features['#-of-ghosts-2-step-away'] + features['#-of-ghosts-3-step-away'] > 0) \
-							or pacmans1[0] + pacmans2[0] + pacmans3[0] > 0
-		ghostEating = lambda: ghosts1[0] + ghosts2[0]# + ghosts3[0]
-		pacmanEeating = lambda: pacmans1[1] + pacmans2[1] + pacmans3[1]
+		#dangerous = lambda: (features['#-of-ghosts-1-step-away'] + features['#-of-ghosts-2-step-away'] + features['#-of-ghosts-3-step-away'] > 0) \
+		#					or pacmans1[0] + pacmans2[0] + pacmans3[0] > 0
+		#ghostEating = lambda: ghosts1[0] + ghosts2[0]# + ghosts3[0]
+		#pacmanEeating = lambda: pacmans1[1] + pacmans2[1] + pacmans3[1]
 		#minDists 	/= np.linalg.norm(minDists)
 		#counts 		/= np.linalg.norm(counts)
 
@@ -177,21 +177,21 @@ class FeatureExtractor:
 		# format: [ ((y1,x1),dist1), ((y2,x2),dist2), ... ]
 
 		# if there is no danger of ghosts then add the food feature
-		if not dangerous() and food[next_x][next_y]:
-			features["eats-food"] = 1.0
-		if not dangerous() and state.isCapsulePos((next_x, next_y)):
-			features["eats-capsule"] = 1.0
-		if not dangerous() and ghostEating() > 0:
-			features["eats-ghosts"] = ghostEating()
-		if not dangerous() and pacmanEeating() > 0:
-			features["eats-pacman"] = pacmanEeating()
-			if minDists[3] != []:
-				features["closest-weaker-pacman"] = minDists[3][0]
-		## dead end
-		if not dangerous():
-			features['num-food'] = counts[0]
-			if features['num-food'] <= 2*features['closest-active-ghost'] and food[next_x][next_y]:
-				features['eats-food'] = 0.0
+		#if not dangerous() and food[next_x][next_y]:
+		#	features["eats-food"] = 1.0
+		#if not dangerous() and state.isCapsulePos((next_x, next_y)):
+		#	features["eats-capsule"] = 1.0
+		#if not dangerous() and ghostEating() > 0:
+		#	features["eats-ghosts"] = ghostEating()
+		#if not dangerous() and pacmanEeating() > 0:
+		#	features["eats-pacman"] = pacmanEeating()
+		#	if minDists[3] != []:
+		#		features["closest-weaker-pacman"] = minDists[3][0]
+		### dead end
+		#if not dangerous():
+		#	features['num-food'] = counts[0]
+		#	if features['num-food'] <= 2*features['closest-active-ghost'] and food[next_x][next_y]:
+		#		features['eats-food'] = 0.0
 
 		dist = closestFood((next_x, next_y), food, walls)
 		if dist is not None:
