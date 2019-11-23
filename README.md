@@ -2,7 +2,7 @@
 Team Szukcesszív Approximátorok's solution
 
 ### How to run
-`python pacman.py --layout=layouts/originalClassic --pacman=MyAgent --numGames=10 --numTraining=8 --numQuiet=7 --useWeights`
+`python pacman.py --layout=layouts/originalClassic --pacman=MyPacmanAgent --numGames=10 --numTraining=8 --numQuiet=7 --useWeights`
 
 TODO
 -
